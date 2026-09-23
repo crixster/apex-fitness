@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gym Tracker">
+  <title>Gym Tracker & Plate Loader</title>
+  
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2338bdf8'><rect width='512' height='512' rx='100' fill='%230f172a'/><path d='M100 230h312v52H100z'/><rect x='60' y='180' width='40' height='152' rx='10' fill='%23ef4444'/><rect x='412' y='180' width='40' height='152' rx='10' fill='%23ef4444'/><rect x='120' y='196' width='30' height='120' rx='8' fill='%233b82f6'/><rect x='362' y='196' width='30' height='120' rx='8' fill='%233b82f6'/></svg>">
+
+  <script>
+    const manifestData = {
+      "name": "Gym Tracker & Plate Loader",
+      "short_name": "GymTracker",
+      "start_url": "./",
+      "display": "standalone",
+      "background_color": "#0f172a",
+      "theme_color": "#0f172a",
+      "orientation": "portrait",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2338bdf8'><rect width='512' height='512' rx='100' fill='%230f172a'/><path d='M100 230h312v52H100z'/><rect x='60' y='180' width='40' height='152' rx='10' fill='%23ef4444'/><rect x='412' y='180' width='40' height='152' rx='10' fill='%23ef4444'/><rect x='120' y='196' width='30' height='120' rx='8' fill='%233b82f6'/><rect x='362' y='196' width='30' height='120' rx='8' fill='%233b82f6'/></svg>",
+          "sizes": "512x512",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+    const manifestURL = URL.createObjectURL(manifestBlob);
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = manifestURL;
+    document.head.appendChild(link);
+  </script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      line-height: 1.5;
+      padding: 12px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #1e293b;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+    
+    .header {
+      padding: 1.25rem 1rem 0.75rem;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .install-btn {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      display: none;
+    }
+    
+    .tabs {
+      display: flex;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 0.85rem;
+      background: none;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #64748b;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+    }
+    
+    .content {
+      padding: 1rem;
+    }
+    
+    .tab-pane {
+      display: none;
+    }
+    
+    .tab-pane.active {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: #0f172a;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    
+    .form-group h3 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      color: #94a3b8;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    
+    input, select {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #f8fafc;
+      font-family: inherit;
+    }
+
+    input::placeholder {
+      color: #64748b;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .autocomplete-wrapper {
+      position: relative;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .suggestions-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      max-height: 160px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      display: none;
+    }
+
+    .suggestion-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #e2e8f0;
+      border-bottom: 1px solid #334155;
+    }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-item:hover {
+      background: #334155;
+      color: #38bdf8;
+    }
+    
+    .btn {
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    
+    .btn-primary {
+      background: #38bdf8;
+      color: #0f172a;
+      width: 100%;
+    }
+    
+    .btn-primary:hover {
+      background: #0284c7;
+      color: #fff;
+    }
+    
+    .btn-secondary {
+      background: #334155;
+      color: #f8fafc;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+    
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .collapsible-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .collapsible-header {
+      padding: 10px 14px;
+      background: #1e293b;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .collapsible-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .collapsible-body {
+      padding: 12px;
+      display: none;
+      border-top: 1px solid #334155;
+    }
+
+    .collapsible-body.open {
+      display: block;
+    }
+
+    .exercise-group {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .exercise-group-header {
+      padding: 10px 12px;
+      background: #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .exercise-group-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .exercise-group-body {
+      display: none;
+      padding: 8px;
+    }
+
+    .exercise-group-body.open {
+      display: block;
+    }
+
+    .set-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      background: #1e293b;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      border: 1px solid #334155;
+      font-size: 13px;
+    }
+
+    .set-details {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .set-badge {
+      background: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #334155;
+    }
+    
+    .barbell-container {
+      padding: 1rem 0.5rem;
+      background: #0f172a;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    
+    .barbell-label {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .svg-barbell-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+      padding: 10px 0;
+    }
+
+    .plates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px;
+    }
+    
+    .plate-card {
+      padding: 8px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 12px;
+    }
+    
+    .plate-card-name {
+      color: #94a3b8;
+      margin-bottom: 4px;
+      font-size: 11px;
+    }
+    
+    .plate-card-count {
+      color: #f8fafc;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    
+    .plate-card-buttons {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .plate-btn {
+      flex: 1;
+      padding: 6px;
+      font-size: 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    
+    .plate-btn-add {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+
+    .plate-btn-add:hover {
+      background: #0284c7;
+      color: #fff;
+    }
+    
+    .plate-btn-remove {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    .plate-btn-remove:hover {
+      background: #475569;
+    }
+    
+    .inventory-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .inventory-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin: 0;
+      text-transform: uppercase;
+    }
+
+    .interactive-plate-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .interactive-plate-wrapper svg:hover {
+      filter: brightness(1.15);
+      transform: scale(1.03);
+    }
+
+    .rm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+    }
+
+    .rm-card {
+      background: #1e293b;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+    }
+
+    .rm-card-title {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .rm-card-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-top: 2px;
+    }
+
+    .edit-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .edit-modal.active {
+      display: flex;
+    }
+
+    .edit-modal-content {
+      background: #1e293b;
+      border-radius: 10px;
+      padding: 16px;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #334155;
+    }
+
+    .edit-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .edit-modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏋️ Gym Tracker & Loader</h1>
+      <button id="installAppBtn" class="install-btn">📲 Install</button>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('log')">Lifting Log</button>
+      <button class="tab-btn" onclick="switchTab('plates')">Plate Loader</button>
+    </div>
+    
+    <div class="content">
+      <!-- Lifting Log Tab -->
+      <div id="log" class="tab-pane active">
+        <!-- 1RM Calculator Collapsible -->
+        <div class="collapsible-card">
+          <div class="collapsible-header" onclick="toggleCollapsible('rmCalcBody')">
+            <span class="collapsible-title">📊 Theoretical 1-Rep Max (1RM)</span>
+            <span id="rmCalcIcon" style="color:#94a3b8; font-size:12px;">▼</span>
+          </div>
+          <div id="rmCalcBody" class="collapsible-body">
+            <div class="rm-grid" id="rmGrid"></div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 8px;">
+              *Estimated using Epley formula: Weight × (1 + Reps/30).
+            </div>
+          </div>
+        </div>
+
+        <!-- Log Entry Form -->
+        <div class="form-group">
+          <h3>Log New Set</h3>
+          <div class="autocomplete-wrapper">
+            <input type="text" id="exerciseName" placeholder="Exercise name (e.g. Bench Press)" oninput="handleExerciseTyping()" onfocus="handleExerciseTyping()">
+            <div id="suggestionsList" class="suggestions-list"></div>
+          </div>
+          
+          <div class="form-row">
+            <input type="number" id="exerciseWeight" placeholder="Weight" step="0.5">
+            <select id="exerciseUnit" style="flex: 0 0 70px;">
+              <option>kg</option>
+              <option>lb</option>
+            </select>
+            <input type="number" id="exerciseReps" placeholder="Reps" step="1" style="flex: 0 0 75px;">
+          </div>
+
+          <div class="form-row">
+            <input type="text" id="exerciseTempo" placeholder="Tempo (e.g. 3-1-X-1)" style="flex: 1;">
+          </div>
+
+          <button class="btn btn-primary" onclick="addExercise()">Add Set Record</button>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
+          <input type="text" id="searchLog" placeholder="🔍 Search exercises..." oninput="renderExercises()" style="padding: 8px 12px; font-size: 13px;">
+          <button class="btn btn-secondary" onclick="toggleAllGroups(true)">Expand</button>
+          <button class="btn btn-secondary" onclick="toggleAllGroups(false)">Collapse</button>
+        </div>
+        
+        <!-- Grouped Exercises Accordion List -->
+        <div id="exercisesList"></div>
+      </div>
+      
+      <!-- Plate Loader Tab -->
+      <div id="plates" class="tab-pane">
+        <div class="form-group">
+          <h3>Target Weight</h3>
+          <div class="form-row">
+            <input type="number" id="targetWeight" value="83" step="0.5" style="flex: 1;" oninput="updateTargetDisplay()">
+            <select id="loaderUnit" style="flex: 0 0 70px;" onchange="updateTargetDisplay()">
+              <option>kg</option>
+              <option>lb</option>
+            </select>
+          </div>
+          <div id="targetDisplay" style="margin-top: 4px; font-size: 13px; color: #38bdf8; font-weight: 600;"></div>
+        </div>
+        
+        <div class="form-group">
+          <h3>Barbell Base Weight</h3>
+          <select id="barWeight" style="width: 100%;" onchange="updateBarWeight()">
+            <option value="20">20 kg (45 lb)</option>
+            <option value="15">15 kg (33 lb)</option>
+          </select>
+        </div>
+        
+        <div id="barbellDisplay"></div>
+        
+        <div class="form-group">
+          <div class="inventory-header">
+            <h3>Available Plates Inventory</h3>
+            <button class="btn btn-secondary" onclick="resetPlates()">Reset All</button>
+          </div>
+          <div class="plates-grid" id="platesGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Set Modal -->
+  <div id="editModal" class="edit-modal">
+    <div class="edit-modal-content">
+      <div class="edit-modal-header">
+        <span class="edit-modal-title">✏️ Edit Set Record</span>
+        <button class="btn btn-secondary" onclick="closeEditModal()">✕</button>
+      </div>
+      <input type="hidden" id="editSetId">
+      <div style="margin-bottom: 8px;">
+        <label style="font-size: 11px; color: #94a3b8;">Exercise Name</label>
+        <input type="text" id="editSetExercise" style="width: 100%;">
+      </div>
+      <div class="form-row">
+        <div style="flex: 1;">
+          <label style="font-size: 11px; color: #94a3b8;">Weight</label>
+          <input type="number" id="editSetWeight" step="0.5">
+        </div>
+        <div style="flex: 0 0 70px;">
+          <label style="font-size: 11px; color: #94a3b8;">Unit</label>
+          <select id="editSetUnit">
+            <option>kg</option>
+            <option>lb</option>
+          </select>
+        </div>
+        <div style="flex: 0 0 75px;">
+          <label style="font-size: 11px; color: #94a3b8;">Reps</label>
+          <input type="number" id="editSetReps">
+        </div>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 11px; color: #94a3b8;">Tempo</label>
+        <input type="text" id="editSetTempo" style="width: 100%;">
+      </div>
+      <button class="btn btn-primary" onclick="saveEditedSet()">Save Changes</button>
+    </div>
+  </div>
+
+  <script>
+    // Plate Definitions
+    const plateDefinitions = [
+      { id: 'red25kg', name: 'Red', weight: 25, unit: 'kg', color: '#ef4444', height: 110, width: 22 },
+      { id: 'blue20kg', name: 'Blue', weight: 20, unit: 'kg', color: '#3b82f6', height: 104, width: 20 },
+      { id: 'yellow15kg', name: 'Yellow', weight: 15, unit: 'kg', color: '#eab308', height: 96, width: 18 },
+      { id: 'green10kg', name: 'Green', weight: 10, unit: 'kg', color: '#22c55e', height: 86, width: 16 },
+      { id: 'white5kg', name: 'White', weight: 5, unit: 'kg', color: '#f8fafc', textColor: '#0f172a', height: 72, width: 14 },
+      { id: 'orange2d5kg', name: 'Orange', weight: 2.5, unit: 'kg', color: '#f97316', height: 60, width: 14 },
+      { id: 'yellow1d5kg', name: 'Yellow', weight: 1.5, unit: 'kg', color: '#fde047', textColor: '#0f172a', height: 52, width: 14 },
+      { id: 'white1kg', name: 'White', weight: 1, unit: 'kg', color: '#f8fafc', textColor: '#0f172a', height: 46, width: 14 },
+      { id: 'blackpat25lb', name: 'Black/grey', weight: 25, unit: 'lb', color: '#475569', height: 96, width: 20 },
+      { id: 'black15lb', name: 'Black', weight: 15, unit: 'lb', color: '#334155', height: 86, width: 18 },
+      { id: 'grey10lb', name: 'Grey', weight: 10, unit: 'lb', color: '#64748b', height: 76, width: 16 }
+    ];
+    
+    let selectedBarWeight = 20;
+    
+    let defaultExercises = [
+      { id: 1, name: 'Squat', weight: 100, unit: 'kg', reps: 5, tempo: '3-1-1-0', date: '2026-03-20' },
+      { id: 2, name: 'Bench Press', weight: 80, unit: 'kg', reps: 5, tempo: '2-1-1-0', date: '2026-03-21' },
+      { id: 3, name: 'Deadlift', weight: 140, unit: 'kg', reps: 3, tempo: '1-1-1-0', date: '2026-03-22' },
+      { id: 4, name: 'Shoulder Press', weight: 50, unit: 'kg', reps: 8, tempo: '2-0-1-0', date: '2026-03-22' },
+      { id: 5, name: 'Push Press', weight: 60, unit: 'kg', reps: 5, tempo: 'X-1-1-0', date: '2026-03-23' }
+    ];
+
+    let exercises = JSON.parse(localStorage.getItem('gym_exercises')) || defaultExercises;
+    
+    let availablePlates = {
+      red25kg: 4, blue20kg: 4, yellow15kg: 4, green10kg: 4, white5kg: 4,
+      orange2d5kg: 4, yellow1d5kg: 4, white1kg: 4,
+      blackpat25lb: 2, black15lb: 2, grey10lb: 2,
+    };
+    
+    const initialPlates = { ...availablePlates };
+    let openGroups = {};
+
+    function saveLogs() {
+      localStorage.setItem('gym_exercises', JSON.stringify(exercises));
+    }
+    
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+      event.target.classList.add('active');
+      
+      if (tab === 'plates') updatePlateLoader();
+      if (tab === 'log') {
+        renderExercises();
+        calculate1RM();
+      }
+    }
+
+    function toggleCollapsible(id) {
+      const body = document.getElementById(id);
+      const isOpen = body.classList.toggle('open');
+      document.getElementById('rmCalcIcon').textContent = isOpen ? '▲' : '▼';
+    }
+
+    function toggleAllGroups(open) {
+      const groupBodies = document.querySelectorAll('.exercise-group-body');
+      groupBodies.forEach(b => {
+        if (open) b.classList.add('open');
+        else b.classList.remove('open');
+      });
+      document.querySelectorAll('.group-toggle-icon').forEach(i => {
+        i.textContent = open ? '▲' : '▼';
+      });
+    }
+
+    function handleExerciseTyping() {
+      const input = document.getElementById('exerciseName').value.trim().toLowerCase();
+      const list = document.getElementById('suggestionsList');
+      if (!input) {
+        list.style.display = 'none';
+        return;
+      }
+
+      const uniqueNames = [...new Set(exercises.map(e => e.name))];
+      const matches = uniqueNames.filter(name => name.toLowerCase().includes(input));
+
+      if (matches.length === 0) {
+        list.style.display = 'none';
+        return;
+      }
+
+      list.innerHTML = matches.map(m => `
+        <div class="suggestion-item" onclick="selectSuggestion('${m}')">${m}</div>
+      `).join('');
+      list.style.display = 'block';
+    }
+
+    function selectSuggestion(name) {
+      document.getElementById('exerciseName').value = name;
+      document.getElementById('suggestionsList').style.display = 'none';
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.autocomplete-wrapper')) {
+        const list = document.getElementById('suggestionsList');
+        if (list) list.style.display = 'none';
+      }
+    });
+
+    function addExercise() {
+      const name = document.getElementById('exerciseName').value.trim();
+      const weight = parseFloat(document.getElementById('exerciseWeight').value);
+      const unit = document.getElementById('exerciseUnit').value;
+      const reps = parseInt(document.getElementById('exerciseReps').value);
+      const tempo = document.getElementById('exerciseTempo').value.trim() || '-';
+      
+      if (name && !isNaN(weight) && !isNaN(reps)) {
+        const date = new Date().toISOString().split('T')[0];
+        exercises.unshift({ id: Date.now(), name, weight, unit, reps, tempo, date });
+        saveLogs();
+        document.getElementById('exerciseName').value = '';
+        document.getElementById('exerciseWeight').value = '';
+        document.getElementById('exerciseReps').value = '';
+        document.getElementById('exerciseTempo').value = '';
+        renderExercises();
+        calculate1RM();
+      }
+    }
+
+    function renameExerciseGroup(oldName) {
+      const newName = prompt(`Rename all records for "${oldName}" to:`, oldName);
+      if (newName && newName.trim() !== '' && newName !== oldName) {
+        exercises.forEach(ex => {
+          if (ex.name.toLowerCase() === oldName.toLowerCase()) {
+            ex.name = newName.trim();
+          }
+        });
+        saveLogs();
+        renderExercises();
+        calculate1RM();
+      }
+    }
+
+    function openEditModal(id) {
+      const set = exercises.find(e => e.id === id);
+      if (!set) return;
+      document.getElementById('editSetId').value = set.id;
+      document.getElementById('editSetExercise').value = set.name;
+      document.getElementById('editSetWeight').value = set.weight;
+      document.getElementById('editSetUnit').value = set.unit;
+      document.getElementById('editSetReps').value = set.reps;
+      document.getElementById('editSetTempo').value = set.tempo || '';
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    function saveEditedSet() {
+      const id = parseInt(document.getElementById('editSetId').value);
+      const set = exercises.find(e => e.id === id);
+      if (set) {
+        set.name = document.getElementById('editSetExercise').value.trim();
+        set.weight = parseFloat(document.getElementById('editSetWeight').value) || 0;
+        set.unit = document.getElementById('editSetUnit').value;
+        set.reps = parseInt(document.getElementById('editSetReps').value) || 0;
+        set.tempo = document.getElementById('editSetTempo').value.trim() || '-';
+        saveLogs();
+        closeEditModal();
+        renderExercises();
+        calculate1RM();
+      }
+    }
+
+    function deleteSet(id) {
+      if (confirm('Delete this set record?')) {
+        exercises = exercises.filter(e => e.id !== id);
+        saveLogs();
+        renderExercises();
+        calculate1RM();
+      }
+    }
+
+    function calculate1RM() {
+      const targetLifts = ['Shoulder Press', 'Push Press', 'Squat', 'Bench Press', 'Deadlift'];
+      const grid = document.getElementById('rmGrid');
+      
+      grid.innerHTML = targetLifts.map(lift => {
+        const matching = exercises.filter(e => e.name.toLowerCase() === lift.toLowerCase());
+        let max1RM = 0;
+        let unit = 'kg';
+
+        matching.forEach(ex => {
+          const wInKg = ex.unit === 'lb' ? ex.weight / 2.20462 : ex.weight;
+          const epley = wInKg * (1 + ex.reps / 30);
+          if (epley > max1RM) {
+            max1RM = epley;
+            unit = 'kg';
+          }
+        });
+
+        const display1RM = max1RM > 0 ? `${Math.round(max1RM)} kg / ${Math.round(max1RM * 2.20462)} lb` : 'No logs';
+
+        return `
+          <div class="rm-card">
+            <div class="rm-card-title">${lift}</div>
+            <div class="rm-card-val">${display1RM}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderExercises() {
+      const searchTerm = document.getElementById('searchLog').value.toLowerCase().trim();
+      const list = document.getElementById('exercisesList');
+
+      const filtered = exercises.filter(e => e.name.toLowerCase().includes(searchTerm));
+
+      const groups = {};
+      filtered.forEach(ex => {
+        const normName = ex.name.trim();
+        if (!groups[normName]) groups[normName] = [];
+        groups[normName].push(ex);
+      });
+
+      if (Object.keys(groups).length === 0) {
+        list.innerHTML = `<div style="text-align: center; color: #64748b; padding: 20px;">No workout logs found.</div>`;
+        return;
+      }
+
+      list.innerHTML = Object.keys(groups).map((groupName, idx) => {
+        const sets = groups[groupName];
+        const topSet = [...sets].sort((a,b) => {
+          const aKg = a.unit === 'lb' ? a.weight / 2.20462 : a.weight;
+          const bKg = b.unit === 'lb' ? b.weight / 2.20462 : b.weight;
+          return bKg - aKg;
+        })[0];
+
+        return `
+          <div class="exercise-group">
+            <div class="exercise-group-header" onclick="toggleGroupBody('grp_${idx}')">
+              <div class="exercise-group-title">
+                <span>${groupName}</span>
+                <span style="font-size: 11px; color: #38bdf8; font-weight: 400;">(${sets.length} sets, Top: ${topSet.weight}${topSet.unit})</span>
+              </div>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 11px;" onclick="event.stopPropagation(); renameExerciseGroup('${groupName.replace(/'/g, "\\'")}')">✏️</button>
+                <span id="icon_grp_${idx}" class="group-toggle-icon" style="color:#94a3b8; font-size: 12px;">▼</span>
+              </div>
+            </div>
+            <div id="grp_${idx}" class="exercise-group-body">
+              ${sets.map(s => `
+                <div class="set-row">
+                  <div class="set-details">
+                    <span style="font-weight: 700; color: #f8fafc;">${s.weight} ${s.unit} × ${s.reps}</span>
+                    <span class="set-badge">Tempo: ${s.tempo}</span>
+                    <span style="font-size: 10px; color: #64748b;">${s.date}</span>
+                  </div>
+                  <div style="display: flex; gap: 4px;">
+                    <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 11px;" onclick="openEditModal(${s.id})">Edit</button>
+                    <button class="btn btn-danger" onclick="deleteSet(${s.id})">✕</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleGroupBody(id) {
+      const body = document.getElementById(id);
+      const icon = document.getElementById('icon_' + id);
+      const isOpen = body.classList.toggle('open');
+      if (icon) icon.textContent = isOpen ? '▲' : '▼';
+    }
+
+    // Plate Loader Logic
+    function updateBarWeight() {
+      selectedBarWeight = parseFloat(document.getElementById('barWeight').value) || 20;
+      updateTargetDisplay();
+    }
+
+    function calculatePlates() {
+      const target = parseFloat(document.getElementById('targetWeight').value) || 0;
+      const unit = document.getElementById('loaderUnit').value;
+      const barbellWeight = unit === 'kg' ? selectedBarWeight : (selectedBarWeight === 20 ? 45 : 33);
+      
+      let weightPerSide = Math.max(0, (target - barbellWeight) / 2);
+      
+      if (weightPerSide === 0) {
+        return { perSide: [], total: barbellWeight };
+      }
+
+      const relevant = plateDefinitions.filter(p => p.unit === unit);
+      const sorted = [...relevant].sort((a, b) => b.weight - a.weight);
+      
+      let perSide = [];
+      let remaining = Math.round(weightPerSide * 100) / 100;
+      
+      for (let i = 0; i < sorted.length; i++) {
+        const plate = sorted[i];
+        const availablePairs = Math.floor((availablePlates[plate.id] || 0) / 2);
+        
+        const needed = Math.min(Math.floor((remaining + 0.001) / plate.weight), availablePairs);
+        
+        for (let j = 0; j < needed; j++) {
+          perSide.push(plate);
+          remaining -= plate.weight;
+          remaining = Math.round(remaining * 100) / 100;
+        }
+        
+        if (remaining <= 0.001) break;
+      }
+
+      const total = perSide.reduce((sum, p) => sum + p.weight, 0) * 2 + barbellWeight;
+      return { perSide, total };
+    }
+
+    function createBarbellSVG(perSidePlates) {
+      // Plate sorting: Inner collar to Outermost sleeve
+      const innerToOuter = [...perSidePlates].sort((a,b) => b.weight - a.weight);
+      const leftSleevePlates = [...innerToOuter].reverse();
+      const rightSleevePlates = innerToOuter;
+
+      const collarWidth = 12;
+      const barHeight = 16;
+      const centerWidth = 90;
+      
+      const leftSideWidth = leftSleevePlates.reduce((acc, p) => acc + (p.width || 14) + 2, 0);
+      const rightSideWidth = rightSleevePlates.reduce((acc, p) => acc + (p.width || 14) + 2, 0);
+
+      const endProtrusion = 30;
+      const totalSVGWidth = Math.max(480, centerWidth + (collarWidth * 2) + leftSideWidth + rightSideWidth + (endProtrusion * 2) + 40);
+      const svgHeight = 160;
+      const centerY = svgHeight / 2;
+
+      const leftCollarX = (totalSVGWidth / 2) - (centerWidth / 2) - collarWidth;
+      const rightCollarX = (totalSVGWidth / 2) + (centerWidth / 2);
+
+      let svg = `<svg width="100%" height="${svgHeight}" viewBox="0 0 ${totalSVGWidth}${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
+      
+      // Bar background
+      const barStartX = leftCollarX - leftSideWidth - endProtrusion;
+      const barEndX = rightCollarX + collarWidth + rightSideWidth + endProtrusion;
+
+      svg += `<rect x="${barStartX}" y="${centerY - (barHeight/2)}" width="${barEndX - barStartX}" height="${barHeight}" rx="4" fill="url(#barGrad)" stroke="#334155" stroke-width="1"/>`;
+      
+      // Collars
+      svg += `<rect x="${leftCollarX}" y="${centerY - 24}" width="${collarWidth}" height="48" rx="2" fill="#475569" stroke="#1e293b"/>`;
+      svg += `<rect x="${rightCollarX}" y="${centerY - 24}" width="${collarWidth}" height="48" rx="2" fill="#475569" stroke="#1e293b"/>`;
+      
+      // Center Barbell Text
+      svg += `<text x="${totalSVGWidth/2}" y="${centerY + 4}" fill="#94a3b8" font-size="11" font-weight="800" text-anchor="middle" letter-spacing="1">BAR</text>`;
+
+      // Render Left Sleeve Plates (Outer to Inner)
+      let currLeftX = leftCollarX - 2;
+      leftSleevePlates.forEach((p, idx) => {
+        currLeftX -= (p.width || 14);
+        svg += renderPlateGraphic(p, currLeftX, centerY, true, idx);
+        currLeftX -= 2;
+      });
+
+      // Render Right Sleeve Plates (Inner to Outer)
+      let currRightX = rightCollarX + collarWidth + 2;
+      rightSleevePlates.forEach((p, idx) => {
+        svg += renderPlateGraphic(p, currRightX, centerY, false, idx);
+        currRightX += (p.width || 14) + 2;
+      });
+
+      // SVG Gradients
+      svg += `
+        <defs>
+          <linearGradient id="barGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#64748b" />
+            <stop offset="50%" style="stop-color:#cbd5e1" />
+            <stop offset="100%" style="stop-color:#334155" />
+          </linearGradient>
+        </defs>
+      </svg>`;
+
+      return svg;
+    }
+
+    function renderPlateGraphic(plate, x, centerY, isLeft, index) {
+      const pHeight = plate.height || 80;
+      const pWidth = plate.width || 14;
+      const y = centerY - (pHeight / 2);
+      
+      // Stagger labels for thin change plates
+      const isThin = plate.weight <= 5;
+      const offsetMultiplier = isThin ? (index % 2 === 0 ? 1 : 2) : 1;
+      const labelY = y - (8 * offsetMultiplier) - 4;
+
+      let g = `<g class="interactive-plate-wrapper" onclick="removePlateFromBar('${plate.id}')">`;
+      
+      // Label line connector if staggered high
+      if (isThin && offsetMultiplier > 1) {
+        g += `<line x1="${x + pWidth/2}" y1="${labelY + 2}" x2="${x + pWidth/2}" y2="${y}" stroke="#94a3b8" stroke-width="1"/>`;
+      }
+
+      // Weight Label Above
+      g += `<text x="${x + pWidth/2}" y="${labelY}" fill="#38bdf8" font-size="11" font-weight="800" text-anchor="middle" stroke="#0f172a" stroke-width="2" paint-order="stroke fill">${plate.weight}</text>`;
+
+      // Plate Body
+      g += `<rect x="${x}" y="${y}" width="${pWidth}" height="${pHeight}" rx="3" fill="${plate.color}" stroke="#0f172a" stroke-width="1"/>`;
+      g += `</g>`;
+      return g;
+    }
+
+    function updatePlateLoader() {
+      const result = calculatePlates();
+      const display = document.getElementById('barbellDisplay');
+      const unit = document.getElementById('loaderUnit').value;
+      const barbellWeight = unit === 'kg' ? selectedBarWeight : (selectedBarWeight === 20 ? 45 : 33);
+      
+      const svgGraphic = createBarbellSVG(result.perSide);
+      const totalKg = Math.round(result.total * 10) / 10;
+      const totalLb = Math.round(totalKg * 2.20462 * 10) / 10;
+      
+      display.innerHTML = `
+        <div class="barbell-container">
+          <div class="barbell-label">Barbell Loading (Tap plate on bar to unload)</div>
+          <div class="svg-barbell-wrapper">${svgGraphic}</div>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Bar Base: ${barbellWeight}${unit}</div>
+          <div style="font-size: 16px; font-weight: 700; color: #38bdf8; margin-top: 2px;">${totalKg} kg / ${totalLb} lb</div>
+        </div>
+      `;
+      
+      renderPlatesInventory();
+    }
+
+    function renderPlatesInventory() {
+      const grid = document.getElementById('platesGrid');
+      
+      grid.innerHTML = plateDefinitions.map(plate => `
+        <div class="plate-card">
+          <div style="margin: 0 auto 4px; cursor: pointer;" onclick="addPlateToBar('${plate.id}')">
+            <div style="font-weight: 800; color: #38bdf8; font-size: 12px;">${plate.weight}${plate.unit}</div>
+            <div style="width: 24px; height: ${plate.height * 0.45}px; background:${plate.color}; border-radius: 3px; margin: 4px auto; border: 1px solid #334155;"></div>
+          </div>
+          <div class="plate-card-name">${plate.name}</div>
+          <div class="plate-card-count">Qty: ${availablePlates[plate.id] || 0}</div>
+          <div class="plate-card-buttons">
+            <button class="plate-btn plate-btn-remove" onclick="decreaseAvailablePlate(event, '${plate.id}')" title="Decrease available count">−</button>
+            <button class="plate-btn plate-btn-add" onclick="increaseAvailablePlate(event, '${plate.id}')" title="Increase available count">+</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function resetPlates() {
+      availablePlates = { ...initialPlates };
+      updatePlateLoader();
+    }
+
+    function updateTargetDisplay() {
+      const target = parseFloat(document.getElementById('targetWeight').value) || 0;
+      const unit = document.getElementById('loaderUnit').value;
+      
+      let targetKg = unit === 'kg' ? target : target / 2.20462;
+      let targetLb = unit === 'lb' ? target : target * 2.20462;
+      
+      targetKg = Math.round(targetKg * 10) / 10;
+      targetLb = Math.round(targetLb * 10) / 10;
+      
+      document.getElementById('targetDisplay').textContent = `= ${targetKg} kg / ${targetLb} lb`;
+      updatePlateLoader();
+    }
+
+    function increaseAvailablePlate(e, plateId) {
+      if (e && e.stopPropagation) e.stopPropagation();
+      availablePlates[plateId] = (availablePlates[plateId] || 0) + 1;
+      renderPlatesInventory();
+    }
+
+    function decreaseAvailablePlate(e, plateId) {
+      if (e && e.stopPropagation) e.stopPropagation();
+      if (availablePlates[plateId] > 0) {
+        availablePlates[plateId]--;
+        updatePlateLoader();
+      }
+    }
+
+    function addPlateToBar(plateId) {
+      if ((availablePlates[plateId] || 0) >= 2) {
+        availablePlates[plateId] -= 2;
+        const plate = plateDefinitions.find(p => p.id === plateId);
+        
+        const unit = document.getElementById('loaderUnit').value;
+        const currentTarget = parseFloat(document.getElementById('targetWeight').value) || 0;
+        
+        let plateWeightInUnit = plate.weight;
+        if (unit !== plate.unit) {
+          plateWeightInUnit = unit === 'kg' ? plate.weight * 0.453592 : plate.weight * 2.20462;
+        }
+        
+        const newTarget = currentTarget + (plateWeightInUnit * 2);
+        document.getElementById('targetWeight').value = Math.round(newTarget * 10) / 10;
+        updateTargetDisplay();
+      } else {
+        alert("At least 2 plates (1 pair) required in available inventory to load onto bar!");
+      }
+    }
+
+    function removePlateFromBar(plateId) {
+      const plate = plateDefinitions.find(p => p.id === plateId);
+      if (plate) {
+        availablePlates[plateId] = (availablePlates[plateId] || 0) + 2;
+        
+        const unit = document.getElementById('loaderUnit').value;
+        const currentTarget = parseFloat(document.getElementById('targetWeight').value) || 0;
+        
+        let plateWeightInUnit = plate.weight;
+        if (unit !== plate.unit) {
+          plateWeightInUnit = unit === 'kg' ? plate.weight * 0.453592 : plate.weight * 2.20462;
+        }
+        
+        const newTarget = Math.max(0, currentTarget - (plateWeightInUnit * 2));
+        document.getElementById('targetWeight').value = Math.round(newTarget * 10) / 10;
+        updateTargetDisplay();
+      }
+    }
+
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          const CACHE_NAME = 'gym-tracker-v1';
+          self.addEventListener('install', e => {
+            e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./'])));
+          });
+          self.addEventListener('fetch', e => {
+            e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
+          });
+        `;
+        const blob = new Blob([swCode], { type: 'text/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+      });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('installAppBtn');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    document.getElementById('installAppBtn').addEventListener('click', () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          document.getElementById('installAppBtn').style.display = 'none';
+        });
+      }
+    });
+
+    // Init App
+    renderExercises();
+    calculate1RM();
+    updateTargetDisplay();
+  </script>
+</body>
+</html>
