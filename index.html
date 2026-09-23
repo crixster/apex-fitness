@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Apex Fitness Tracker</title>
 
-  <!-- PWA: installable on Android (manifest) and iOS (apple-* tags) -->
+<!-- PWA: installable on Android (manifest) and iOS (apple-* tags) -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
   <meta name="application-name" content="Apex Fitness">
@@ -16,23 +16,23 @@
   <!-- iOS ignores manifest icons entirely, so the apple-touch-icon file below
        (a real, opaque, non-transparent 180x180 PNG placed next to index.html)
        is what actually shows on the iPhone/iPad home screen. -->
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
-  <link rel="icon" href="icons/icon-512.png" sizes="512x512" type="image/png">
-
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="icon-512.png" sizes="512x512" type="image/png">
+ 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="min-h-screen pb-12">
-
+ 
   <div class="max-w-xl mx-auto px-4 pt-6">
     <header class="text-center mb-6">
       <h1 class="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400">
         💪 Apex Fitness Tracker
       </h1>
       <p class="text-xs sm:text-sm text-slate-400 mt-1">Smart barbell loading calculator, workout log & macro tracker</p>
-
+ 
       <!-- Install App Banner (Android/Chrome shows a real install button; iOS shows Add-to-Home-Screen instructions, since Safari has no install prompt API) -->
       <div id="pwaInstallContainer" class="hidden mt-3 flex flex-col items-center gap-2">
         <button id="pwaInstallBtn" onclick="triggerPwaInstall()" class="hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md transition items-center gap-2">
