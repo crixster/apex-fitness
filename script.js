@@ -40,9 +40,11 @@
     // Macro Tracker State
     let currentDate = new Date();
     let editingMacroId = null;
+    let editingMacroDateKey = null; // which foodLogs[] day-bucket editingMacroId belongs to
     let goals = { cal: 2000, p: 150, c: 200, f: 65 };
     let foodLogs = {}; // Format: 'YYYY-MM-DD': [{ id, name, cal, p, c, f, portion, baseCal, baseP, baseC, baseF }]
     let favourites = [];
+    let editingFavouriteId = null;
     let geminiApiKey = '';
 
     window.onload = function() {
@@ -1217,6 +1219,35 @@
       return `${year}-${month}-${day}`;
     }
 
+    // Turns a 'YYYY-MM-DD' foodLogs key back into a local Date, avoiding
+    // the UTC-midnight parsing shift that `new Date('YYYY-MM-DD')` causes.
+    function parseDateKey(key) {
+      const [year, month, day] = key.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    // "Day Month Year" display format, e.g. "23 September 2026".
+    function formatDisplayDate(date) {
+      const day = date.getDate();
+      const month = date.toLocaleDateString('en-US', { month: 'long' });
+      const year = date.getFullYear();
+      return `${day} ${month} ${year}`;
+    }
+
+    // "H:MM AM/PM" display format for a logged item's timestamp. Every
+    // food log entry's id is assigned via Date.now() when first logged
+    // (and preserved as-is on edits), so it doubles as that entry's
+    // logged-at timestamp without needing a separate stored field.
+    function formatDisplayTime(msTimestamp) {
+      const d = new Date(msTimestamp);
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+      return `${hours}:${minutes} ${ampm}`;
+    }
+
     function changeDate(delta) {
       currentDate.setDate(currentDate.getDate() + delta);
       renderDay();
@@ -1224,15 +1255,10 @@
 
     function renderDay() {
       const key = formatDateKey(currentDate);
-      const todayStr = formatDateKey(new Date());
 
       const dateDisplay = document.getElementById('current-date-display');
       if (dateDisplay) {
-        if (key === todayStr) {
-          dateDisplay.textContent = 'Today';
-        } else {
-          dateDisplay.textContent = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
+        dateDisplay.textContent = formatDisplayDate(currentDate);
       }
 
       document.getElementById('goal-cal-display').textContent = goals.cal;
@@ -1265,53 +1291,80 @@
       if (barC) barC.style.width = `${Math.min(100, (totalC / goals.c) * 100)}%`;
       if (barF) barF.style.width = `${Math.min(100, (totalF / goals.f) * 100)}%`;
 
-      renderFoodList(dayLogs);
+      renderFoodList();
       renderFavouritesList();
     }
 
-    function renderFoodList(logs) {
+    // Renders EVERY logged food item across all days (not just the day
+    // selected in the Date Navigator above), newest day first, grouped
+    // under a day header, and newest item first within each day. The
+    // Date Navigator + Daily Summary cards still control which single
+    // day's totals/goal progress are shown; this list is the full history.
+    function renderFoodList() {
       const listContainer = document.getElementById('food-list');
       if (!listContainer) return;
 
-      if (logs.length === 0) {
+      const dateKeys = Object.keys(foodLogs).filter(key => (foodLogs[key] || []).length > 0);
+
+      if (dateKeys.length === 0) {
         listContainer.innerHTML = `
           <div class="text-center text-xs text-slate-500 py-6 bg-slate-900/40 rounded-xl border border-slate-800">
-            No food items logged for this day.
+            No food items logged yet.
           </div>
         `;
         return;
       }
 
-      listContainer.innerHTML = logs.map(item => {
-        const portionLabel = item.portion && item.portion !== 1 ? ` (${item.portion}x portion)` : '';
-        const isFav = favourites.some(f => f.name.toLowerCase() === item.name.toLowerCase());
+      // Newest day first ('YYYY-MM-DD' keys sort correctly as strings).
+      dateKeys.sort((a, b) => b.localeCompare(a));
 
-        return `
-          <div class="glass-card p-3 rounded-xl border border-slate-800 flex items-center justify-between hover:border-slate-700 transition">
-            <div class="space-y-0.5">
-              <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>${item.name}</span>
-                <span class="text-[10px] text-emerald-400 font-semibold">${portionLabel}</span>
+      listContainer.innerHTML = dateKeys.map(dateKey => {
+        // Newest logged item first within the day (id = Date.now() at log time).
+        const items = [...foodLogs[dateKey]].sort((a, b) => (b.id || 0) - (a.id || 0));
+        const dayLabel = formatDisplayDate(parseDateKey(dateKey));
+
+        const itemsHtml = items.map(item => {
+          const portionLabel = item.portion && item.portion !== 1 ? ` (${item.portion}x portion)` : '';
+          const isFav = favourites.some(f => f.name.toLowerCase() === item.name.toLowerCase());
+          const timeLabel = formatDisplayTime(item.id);
+
+          return `
+            <div class="glass-card p-3 rounded-xl border border-slate-800 flex items-center justify-between hover:border-slate-700 transition">
+              <div class="space-y-0.5">
+                <div class="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
+                  <span>${item.name}</span>
+                  <span class="text-[10px] text-emerald-400 font-semibold">${portionLabel}</span>
+                  <span class="text-[10px] text-slate-500 font-medium">• ${timeLabel}</span>
+                </div>
+                <div class="text-[11px] text-slate-400 flex items-center gap-2">
+                  <span class="font-bold text-slate-200">${item.cal} kcal</span>
+                  <span>•</span>
+                  <span>P: ${item.p}g</span>
+                  <span>C: ${item.c}g</span>
+                  <span>F: ${item.f}g</span>
+                </div>
               </div>
-              <div class="text-[11px] text-slate-400 flex items-center gap-2">
-                <span class="font-bold text-slate-200">${item.cal} kcal</span>
-                <span>•</span>
-                <span>P: ${item.p}g</span>
-                <span>C: ${item.c}g</span>
-                <span>F: ${item.f}g</span>
+
+              <div class="flex items-center gap-1.5">
+                <button onclick="toggleSaveAsFavouriteFromLog(${item.id}, '${dateKey}')" class="text-xs px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 transition" title="${isFav ? 'In Favourites' : 'Save as Favourite'}">
+                  ${isFav ? '★ Saved' : '☆ Fav'}
+                </button>
+                <button onclick="openFormModal(${item.id}, '${dateKey}')" class="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 transition">
+                  Edit
+                </button>
+                <button onclick="deleteFoodEntry(${item.id}, '${dateKey}')" class="text-xs text-slate-500 hover:text-rose-400 p-1" title="Delete Entry">
+                  🗑️
+                </button>
               </div>
             </div>
+          `;
+        }).join('');
 
-            <div class="flex items-center gap-1.5">
-              <button onclick="toggleSaveAsFavouriteFromLog(${item.id})" class="text-xs px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 transition" title="${isFav ? 'In Favourites' : 'Save as Favourite'}">
-                ${isFav ? '★ Saved' : '☆ Fav'}
-              </button>
-              <button onclick="openFormModal(${item.id})" class="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 transition">
-                Edit
-              </button>
-              <button onclick="deleteFoodEntry(${item.id})" class="text-xs text-slate-500 hover:text-rose-400 p-1" title="Delete Entry">
-                🗑️
-              </button>
+        return `
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1 pt-1">${dayLabel}</div>
+            <div class="space-y-2">
+              ${itemsHtml}
             </div>
           </div>
         `;
@@ -1362,6 +1415,9 @@
           <div class="flex items-center gap-1.5">
             <button onclick="addFavouriteToDayPrompt(${fav.id})" class="text-xs px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-semibold rounded-lg transition flex items-center gap-1">
               <span>+ Add</span>
+            </button>
+            <button onclick="openEditFavouriteModal(${fav.id})" class="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded border border-slate-700 transition" title="Edit Favourite">
+              Edit
             </button>
             <button onclick="removeFavourite(${fav.id})" class="text-xs text-slate-500 hover:text-rose-400 p-1" title="Remove Favourite">
               🗑️
@@ -1421,8 +1477,58 @@
       showToast('Removed from favourites');
     }
 
-    function toggleSaveAsFavouriteFromLog(itemId) {
-      const key = formatDateKey(currentDate);
+    function openEditFavouriteModal(favId) {
+      const fav = favourites.find(f => f.id === favId);
+      if (!fav) return;
+
+      editingFavouriteId = favId;
+
+      document.getElementById('edit-fav-name-input').value = fav.name;
+      document.getElementById('edit-fav-portion-input').value = fav.portion || 1;
+      document.getElementById('edit-fav-cal-input').value = fav.cal;
+      document.getElementById('edit-fav-p-input').value = fav.p;
+      document.getElementById('edit-fav-c-input').value = fav.c;
+      document.getElementById('edit-fav-f-input').value = fav.f;
+
+      document.getElementById('edit-favourite-modal')?.classList.remove('hidden');
+    }
+
+    function closeEditFavouriteModal() {
+      document.getElementById('edit-favourite-modal')?.classList.add('hidden');
+      editingFavouriteId = null;
+    }
+
+    function saveEditFavourite() {
+      if (!editingFavouriteId) return;
+
+      const name = document.getElementById('edit-fav-name-input').value.trim();
+      const portion = parseFloat(document.getElementById('edit-fav-portion-input').value) || 1;
+      const cal = parseFloat(document.getElementById('edit-fav-cal-input').value) || 0;
+      const p = parseFloat(document.getElementById('edit-fav-p-input').value) || 0;
+      const c = parseFloat(document.getElementById('edit-fav-c-input').value) || 0;
+      const f = parseFloat(document.getElementById('edit-fav-f-input').value) || 0;
+
+      if (!name) {
+        showToast('Please enter a food name');
+        return;
+      }
+
+      const index = favourites.findIndex(fav => fav.id === editingFavouriteId);
+      if (index === -1) {
+        closeEditFavouriteModal();
+        return;
+      }
+
+      favourites[index] = { ...favourites[index], name, portion, cal, p, c, f };
+
+      saveFavourites();
+      closeEditFavouriteModal();
+      renderFavouritesList();
+      showToast(`Updated "${name}" in favourites`);
+    }
+
+    function toggleSaveAsFavouriteFromLog(itemId, dateKey) {
+      const key = dateKey || formatDateKey(currentDate);
       const dayLogs = foodLogs[key] || [];
       const item = dayLogs.find(i => i.id === itemId);
       if (!item) return;
@@ -1454,8 +1560,9 @@
       renderDay();
     }
 
-    function openFormModal(id = null) {
+    function openFormModal(id = null, dateKey = null) {
       editingMacroId = id;
+      editingMacroDateKey = id ? (dateKey || formatDateKey(currentDate)) : null;
       const modal = document.getElementById('entry-modal');
       const titleEl = document.getElementById('modal-title');
       const saveFavCb = document.getElementById('save-as-fav-checkbox');
@@ -1466,7 +1573,7 @@
       delete modal.dataset.baseF;
 
       if (id) {
-        const key = formatDateKey(currentDate);
+        const key = editingMacroDateKey;
         const item = (foodLogs[key] || []).find(i => i.id === id);
         if (item) {
           if (titleEl) titleEl.textContent = 'Edit Food Entry';
@@ -1504,6 +1611,7 @@
     function closeFormModal() {
       document.getElementById('entry-modal').classList.add('hidden');
       editingMacroId = null;
+      editingMacroDateKey = null;
     }
 
     function saveFoodEntry() {
@@ -1520,7 +1628,9 @@
         return;
       }
 
-      const key = formatDateKey(currentDate);
+      // Editing an existing entry writes back to the day it was originally
+      // logged under; adding a new entry always logs to the selected day.
+      const key = editingMacroId ? (editingMacroDateKey || formatDateKey(currentDate)) : formatDateKey(currentDate);
       if (!foodLogs[key]) foodLogs[key] = [];
 
       const modal = document.getElementById('entry-modal');
@@ -1577,8 +1687,8 @@
       showToast(editingMacroId ? 'Updated food entry' : 'Added food entry');
     }
 
-    function deleteFoodEntry(id) {
-      const key = formatDateKey(currentDate);
+    function deleteFoodEntry(id, dateKey) {
+      const key = dateKey || formatDateKey(currentDate);
       if (foodLogs[key]) {
         foodLogs[key] = foodLogs[key].filter(item => item.id !== id);
         localStorage.setItem('apex_food_logs', JSON.stringify(foodLogs));
