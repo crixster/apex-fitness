@@ -688,7 +688,6 @@
     let loadedPlatesPerSide = []; 
     let selectedBarWeightKg = 20;
     
-    // Collapsed state tracking for exercise group accordions
     let collapsedGroupsMap = {};
 
     let exercises = [
@@ -706,6 +705,8 @@
     let currentDate = new Date();
     let editingMacroId = null;
     let goals = { cal: 2000, p: 150, c: 200, f: 65 };
+    let foodLogs = {}; // Format: 'YYYY-MM-DD': [{ id, name, cal, p, c, f }]
+    let geminiApiKey = '';
 
     window.onload = function() {
       renderExercises();
@@ -715,12 +716,10 @@
       loadSettings();
       renderDay();
 
-      // Register Service Worker for PWA installation capability on iPhone/Android
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
       }
 
-      // Close autocomplete suggestions dropdown on outside click
       document.addEventListener('click', function(e) {
         const sugg = document.getElementById('exerciseSuggestions');
         const input = document.getElementById('exerciseName');
@@ -730,26 +729,15 @@
       });
     };
 
-    /**
-     * Flexible Tempo Formatter & Normalizer
-     * Default Fallback strictly set to 2-0-1-0
-     */
     function formatTempo(input) {
       if (!input || typeof input !== 'string') return '2-0-1-0';
       let str = input.trim().toUpperCase();
       if (!str) return '2-0-1-0';
-
-      // Replaces spaces, commas, or multiple non-alphanumerics with single hyphens
       str = str.replace(/[\s,]+/g, '-');
-
-      // If user entered 4 digits/X without any hyphens (e.g. "2010" or "31X1")
       if (/^[0-9X]{4}$/.test(str)) {
         str = str.split('').join('-');
       }
-
-      // Consolidate extra hyphens
       str = str.replace(/-+/g, '-');
-
       return str;
     }
 
@@ -763,13 +751,9 @@
     function syncBWCheckbox(exerciseNameInput) {
       const bwCheckbox = document.getElementById('exerciseBW');
       if (!bwCheckbox) return;
-
       const name = (exerciseNameInput || '').trim();
       if (!name) return;
-
-      // Search saved historical records for this exercise movement name
       const existingRecord = exercises.find(ex => ex.name.trim().toLowerCase() === name.toLowerCase());
-      
       if (existingRecord) {
         bwCheckbox.checked = !!existingRecord.isBW;
       } else {
@@ -834,12 +818,12 @@
     function parseTempoDuration(tempoStr) {
       const formatted = formatTempo(tempoStr);
       const parts = formatted.split('-');
-      if (parts.length !== 4) return 3.0; // default 2-0-1-0 = 3s total
+      if (parts.length !== 4) return 3.0;
       let total = 0;
       for (let p of parts) {
         const val = p.trim().toUpperCase();
         if (val === 'X') {
-          total += 0.5; // Explosive phase ~0.5s
+          total += 0.5;
         } else {
           const num = parseFloat(val);
           if (isNaN(num)) return 3.0;
@@ -864,22 +848,15 @@
     function handleExerciseInput() {
       const input = document.getElementById('exerciseName');
       const container = document.getElementById('exerciseSuggestions');
-
       if (!input || !container) return;
-
       const query = input.value.trim().toLowerCase();
-      
-      // Auto-sync Body Weight checkbox on typing
       syncBWCheckbox(query);
-
       const uniqueList = getUniquePreviousExercises();
       const matches = uniqueList.filter(name => name.toLowerCase().includes(query));
-
       if (matches.length === 0) {
         container.classList.add('hidden');
         return;
       }
-
       container.innerHTML = matches.map(name => `
         <div onclick="selectSuggestion('${name.replace(/'/g, "\\'")}')" 
              class="px-3.5 py-2 hover:bg-indigo-600/30 text-xs text-slate-200 cursor-pointer font-medium transition flex items-center justify-between border-b border-slate-800/50 last:border-0">
@@ -887,19 +864,15 @@
           <span class="text-[10px] text-slate-500">Select</span>
         </div>
       `).join('');
-
       container.classList.remove('hidden');
     }
 
     function selectSuggestion(name) {
       const input = document.getElementById('exerciseName');
       const sugg = document.getElementById('exerciseSuggestions');
-
       if (input) input.value = name;
       if (sugg) sugg.classList.add('hidden');
-
       syncBWCheckbox(name);
-
       document.getElementById('exerciseWeight')?.focus();
     }
 
@@ -934,18 +907,15 @@
     function updateSuggestionsSelect() {
       const select = document.getElementById('suggestionExerciseSelect');
       if (!select) return;
-
       const uniqueNames = Array.from(new Set(exercises.map(e => e.name.trim()))).filter(Boolean);
       if (uniqueNames.length === 0) {
         select.innerHTML = `<option value="">No exercises logged</option>`;
         return;
       }
-
       const currentVal = select.value;
       select.innerHTML = uniqueNames.map(name => `
         <option value="${name.replace(/"/g, '&quot;')}" ${name === currentVal ? 'selected' : ''}>${name}</option>
       `).join('');
-
       if (!currentVal || !uniqueNames.includes(currentVal)) {
         select.value = uniqueNames[0];
       }
@@ -955,16 +925,13 @@
     function onSuggestionExerciseChange() {
       const select = document.getElementById('suggestionExerciseSelect');
       if (!select) return;
-
       const selectedName = select.value;
       if (!selectedName) {
         renderWeightSuggestions();
         return;
       }
-
       let topRecord = null;
       let top1RMKg = -1;
-
       exercises.forEach(ex => {
         if (ex.name.toLowerCase() === selectedName.toLowerCase()) {
           const wKg = ex.unit === 'kg' ? ex.weight : ex.weight * 0.45359237;
@@ -976,17 +943,14 @@
           }
         }
       });
-
       if (topRecord) {
         const targetSetsInput = document.getElementById('suggestionTargetSets');
         const targetRepsInput = document.getElementById('suggestionTargetReps');
         const targetTempoInput = document.getElementById('suggestionTargetTempo');
-
         if (targetSetsInput) targetSetsInput.value = topRecord.sets || 3;
         if (targetRepsInput) targetRepsInput.value = topRecord.reps || 10;
         if (targetTempoInput) targetTempoInput.value = formatTempo(topRecord.tempo || '2-0-1-0');
       }
-
       renderWeightSuggestions();
     }
 
@@ -996,7 +960,6 @@
       const targetRepsInput = document.getElementById('suggestionTargetReps');
       const targetTempoInput = document.getElementById('suggestionTargetTempo');
       const resultBox = document.getElementById('suggestionResultBox');
-
       if (!select || !resultBox) return;
 
       const selectedName = select.value;
@@ -1011,7 +974,6 @@
 
       let topRecord = null;
       let top1RMKg = -1;
-
       exercises.forEach(ex => {
         if (ex.name.toLowerCase() === selectedName.toLowerCase()) {
           const wKg = ex.unit === 'kg' ? ex.weight : ex.weight * 0.45359237;
@@ -1056,15 +1018,9 @@
       if (isBW) {
         const suggestedAddedKg = adjustedTargetSystemKg - (assumedBWKg * 0.68);
         targetKgToLoad = suggestedAddedKg > 0 ? Math.round(suggestedAddedKg * 10) / 10 : 0;
-
         const valInUnit = baseUnit === 'kg' ? Math.max(0, suggestedAddedKg) : Math.max(0, suggestedAddedKg) * 2.20462;
         const roundedAdded = Math.round(valInUnit * 2) / 2;
-
-        if (roundedAdded > 0) {
-          targetWeightDisplay = `Body Weight + ${roundedAdded} ${baseUnit}`;
-        } else {
-          targetWeightDisplay = `Body Weight`;
-        }
+        targetWeightDisplay = roundedAdded > 0 ? `Body Weight + ${roundedAdded} ${baseUnit}` : `Body Weight`;
       } else {
         targetKgToLoad = Math.round(adjustedTargetSystemKg * 10) / 10;
         const valInUnit = baseUnit === 'kg' ? adjustedTargetSystemKg : adjustedTargetSystemKg * 2.20462;
@@ -1155,10 +1111,8 @@
     function loadSuggestedWeightToPlateCalculator(targetKg) {
       const targetEl = document.getElementById('targetWeight');
       const unitEl = document.getElementById('loaderUnit');
-      
       if (unitEl) unitEl.value = 'kg';
       if (targetEl) targetEl.value = targetKg;
-
       switchTab('plates');
       calculateFromTarget();
       showToast(`Loaded ${targetKg} kg into Plate Loader`);
@@ -1186,11 +1140,9 @@
       grid.innerHTML = targetLifts.map(lift => {
         let best1RMKg = 0;
         let bestSetInfo = 'No sets logged';
-
         exercises.forEach(ex => {
           const nameLower = ex.name.toLowerCase();
           const matches = lift.matchNames.some(m => nameLower.includes(m));
-          
           if (matches) {
             const wKg = ex.unit === 'kg' ? ex.weight : ex.weight * 0.45359237;
             const e1rmKg = calculate1RM(wKg, ex.reps);
@@ -1304,7 +1256,6 @@
     function saveGroupRename() {
       const oldName = document.getElementById('renameOldGroupKey')?.value.trim();
       const newName = document.getElementById('renameNewGroupInput')?.value.trim();
-
       if (oldName && newName) {
         exercises = exercises.map(ex => {
           if (ex.name.toLowerCase() === oldName.toLowerCase()) {
@@ -1312,7 +1263,6 @@
           }
           return ex;
         });
-
         closeRenameGroupModal();
         renderExercises();
         render1RMCard();
@@ -1324,7 +1274,6 @@
     function openEditModal(id) {
       const record = exercises.find(e => e.id === id);
       if (!record) return;
-
       document.getElementById('editId').value = record.id;
       document.getElementById('editName').value = record.name;
       document.getElementById('editWeight').value = record.weight;
@@ -1333,7 +1282,6 @@
       document.getElementById('editReps').value = record.reps;
       document.getElementById('editTempo').value = formatTempo(record.tempo || '2-0-1-0');
       document.getElementById('editBW').checked = !!record.isBW;
-
       document.getElementById('editModal')?.classList.remove('hidden');
     }
 
@@ -1359,7 +1307,6 @@
           }
           return ex;
         });
-
         closeEditModal();
         renderExercises();
         render1RMCard();
@@ -1375,7 +1322,6 @@
     function toggleAllGroups(expand) {
       const searchInput = document.getElementById('searchLog')?.value || '';
       const searchQuery = searchInput.toLowerCase().trim();
-      
       exercises.forEach(ex => {
         const normKey = ex.name.trim().toLowerCase();
         if (!searchQuery || normKey.includes(searchQuery)) {
@@ -1421,7 +1367,6 @@
 
         const maxSetKg = maxSet.unit === 'kg' ? maxSet.weight : Math.round(maxSet.weight * 0.45359237 * 10) / 10;
         const maxSetLb = maxSet.unit === 'lb' ? maxSet.weight : Math.round(maxSet.weight * 2.20462 * 10) / 10;
-
         const maxSetLabel = maxSet.isBW ? (maxSet.weight > 0 ? `Body Weight + ${maxSetKg} kg` : 'Body Weight') : `${maxSetKg} kg (${maxSetLb} lb)`;
 
         return `
@@ -1520,9 +1465,7 @@
     function onBarWeightSelectChange() {
       const barSelect = document.getElementById('barWeight');
       const customContainer = document.getElementById('customBarContainer');
-      
       if (!barSelect) return;
-
       if (barSelect.value === 'custom') {
         customContainer?.classList.remove('hidden');
         const customVal = parseFloat(document.getElementById('customBarWeight')?.value) || 0;
@@ -1531,7 +1474,6 @@
         customContainer?.classList.add('hidden');
         selectedBarWeightKg = parseFloat(barSelect.value) || 20;
       }
-
       calculateFromTarget();
     }
 
@@ -1544,7 +1486,6 @@
     function calculateFromTarget() {
       const targetEl = document.getElementById('targetWeight');
       const unitEl = document.getElementById('loaderUnit');
-
       const targetInput = targetEl ? (parseFloat(targetEl.value) || 0) : 0;
       const unit = unitEl ? unitEl.value : 'kg';
       
@@ -1793,7 +1734,6 @@
     function updateUI(recalc = true) {
       const totalKg = calculateTotalWeightKg();
       const totalLb = totalKg * 2.20462;
-      
       const roundedKg = Math.round(totalKg * 10) / 10;
       const roundedLb = Math.round(totalLb * 10) / 10;
       const combinedDisplayStr = `${roundedKg} kg / ${roundedLb} lb`;
@@ -1871,140 +1811,98 @@
       }).join('');
     }
 
-    // Macro Tracker Logic implementation
-    function formatDateKey(date) {
+    // Macro Tracker Functions
+    function getDateString(date) {
       return date.toISOString().split('T')[0];
     }
 
-    function changeDate(days) {
-      currentDate.setDate(currentDate.getDate() + days);
-      renderDay();
-    }
-
     function renderDay() {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const selectedStr = formatDateKey(currentDate);
-
       const dateDisplay = document.getElementById('current-date-display');
+      const todayStr = getDateString(new Date());
+      const currStr = getDateString(currentDate);
+
       if (dateDisplay) {
-        if (selectedStr === todayStr) {
-          dateDisplay.innerText = "Today";
+        if (currStr === todayStr) {
+          dateDisplay.textContent = 'Today';
         } else {
-          dateDisplay.innerText = currentDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+          dateDisplay.textContent = currentDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
         }
       }
 
-      const logs = getLogsForDate(selectedStr);
-      renderSummaryAndList(logs);
-    }
+      const items = foodLogs[currStr] || [];
+      let totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
 
-    function getLogsForDate(dateKey) {
-      const data = localStorage.getItem(`macro_logs_${dateKey}`);
-      return data ? JSON.parse(data) : [];
-    }
+      items.forEach(item => {
+        totalCal += Number(item.cal) || 0;
+        totalP += Number(item.p) || 0;
+        totalC += Number(item.c) || 0;
+        totalF += Number(item.f) || 0;
+      });
 
-    function saveLogsForDate(dateKey, logs) {
-      localStorage.setItem(`macro_logs_${dateKey}`, JSON.stringify(logs));
-      renderDay();
-    }
+      document.getElementById('summary-cal').textContent = totalCal;
+      document.getElementById('summary-p').textContent = `${totalP}g`;
+      document.getElementById('summary-c').textContent = `${totalC}g`;
+      document.getElementById('summary-f').textContent = `${totalF}g`;
 
-    function renderSummaryAndList(logs) {
-      let totals = { cal: 0, p: 0, c: 0, f: 0 };
-      const listContainer = document.getElementById('food-list');
-      if (!listContainer) return;
-      listContainer.innerHTML = '';
+      document.getElementById('goal-cal-display').textContent = goals.cal;
+      document.getElementById('goal-p-display').textContent = goals.p;
+      document.getElementById('goal-c-display').textContent = goals.c;
+      document.getElementById('goal-f-display').textContent = goals.f;
 
-      if (logs.length === 0) {
-        listContainer.innerHTML = `
-          <div class="glass-card rounded-xl p-6 text-center text-slate-400 text-xs border border-slate-800">
-            No food items logged for this date.
-          </div>
-        `;
-      } else {
-        logs.forEach((item) => {
-          totals.cal += Number(item.cal) || 0;
-          totals.p += Number(item.p) || 0;
-          totals.c += Number(item.c) || 0;
-          totals.f += Number(item.f) || 0;
+      const pctCal = Math.min(100, Math.round((totalCal / (goals.cal || 1)) * 100));
+      const pctP = Math.min(100, Math.round((totalP / (goals.p || 1)) * 100));
+      const pctC = Math.min(100, Math.round((totalC / (goals.c || 1)) * 100));
+      const pctF = Math.min(100, Math.round((totalF / (goals.f || 1)) * 100));
 
-          const card = document.createElement('div');
-          card.className = "glass-card rounded-xl p-4 flex items-center justify-between border border-slate-800";
-          card.innerHTML = `
-            <div>
-              <div class="font-bold text-white text-sm">${escapeHtml(item.name)}</div>
-              <div class="text-xs text-slate-400 space-x-2 mt-1">
-                <span class="text-emerald-400 font-semibold">${item.cal} kcal</span>
-                <span>• P: ${item.p}g</span>
-                <span>• C: ${item.c}g</span>
-                <span>• F: ${item.f}g</span>
+      document.getElementById('bar-cal').style.width = `${pctCal}%`;
+      document.getElementById('bar-p').style.width = `${pctP}%`;
+      document.getElementById('bar-c').style.width = `${pctC}%`;
+      document.getElementById('bar-f').style.width = `${pctF}%`;
+
+      const foodList = document.getElementById('food-list');
+      if (foodList) {
+        if (items.length === 0) {
+          foodList.innerHTML = `<div class="text-center text-xs text-slate-500 py-6 bg-slate-900/40 rounded-xl border border-slate-800">No food logged for this date.</div>`;
+        } else {
+          foodList.innerHTML = items.map(item => `
+            <div class="glass-card p-3 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+              <div>
+                <div class="font-bold text-white text-sm">${item.name}</div>
+                <div class="text-slate-400 mt-0.5">
+                  <span class="text-emerald-400 font-semibold">${item.cal} kcal</span> • 
+                  P: <span class="text-indigo-300">${item.p}g</span> • 
+                  C: <span class="text-amber-300">${item.c}g</span> • 
+                  F: <span class="text-rose-300">${item.f}g</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="editFoodEntry(${item.id})" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition">Edit</button>
+                <button onclick="deleteFoodEntry(${item.id})" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition">Delete</button>
               </div>
             </div>
-            <div class="flex space-x-1">
-              <button onclick="editEntry('${item.id}')" class="p-2 text-slate-400 hover:text-indigo-400 transition"><i class="fa-solid fa-pen"></i></button>
-              <button onclick="deleteEntry('${item.id}')" class="p-2 text-slate-400 hover:text-rose-400 transition"><i class="fa-solid fa-trash"></i></button>
-            </div>
-          `;
-          listContainer.appendChild(card);
-        });
-      }
-
-      document.getElementById('summary-cal').innerText = totals.cal;
-      document.getElementById('summary-p').innerText = totals.p + 'g';
-      document.getElementById('summary-c').innerText = totals.c + 'g';
-      document.getElementById('summary-f').innerText = totals.f + 'g';
-
-      document.getElementById('goal-cal-display').innerText = goals.cal;
-      document.getElementById('goal-p-display').innerText = goals.p;
-      document.getElementById('goal-c-display').innerText = goals.c;
-      document.getElementById('goal-f-display').innerText = goals.f;
-
-      updateBar('bar-cal', totals.cal, goals.cal);
-      updateBar('bar-p', totals.p, goals.p);
-      updateBar('bar-c', totals.c, goals.c);
-      updateBar('bar-f', totals.f, goals.f);
-    }
-
-    function updateBar(barId, current, goal) {
-      const bar = document.getElementById(barId);
-      if (!bar) return;
-      const pct = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
-      bar.style.width = pct + '%';
-    }
-
-    function escapeHtml(text) {
-      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-      return text.replace(/[&<>"']/g, m => map[m]);
-    }
-
-    function openFormModal(id = null) {
-      editingMacroId = id;
-      const modal = document.getElementById('entry-modal');
-      const title = document.getElementById('modal-title');
-      
-      if (id) {
-        title.innerText = "Edit Food Entry";
-        const logs = getLogsForDate(formatDateKey(currentDate));
-        const item = logs.find(l => l.id == id);
-        if (item) {
-          document.getElementById('food-name-input').value = item.name;
-          document.getElementById('food-cal-input').value = item.cal;
-          document.getElementById('food-p-input').value = item.p;
-          document.getElementById('food-c-input').value = item.c;
-          document.getElementById('food-f-input').value = item.f;
+          `).join('');
         }
-      } else {
-        title.innerText = "Add Food Entry";
-        document.getElementById('food-name-input').value = '';
-        document.getElementById('food-cal-input').value = '';
-        document.getElementById('food-p-input').value = '';
-        document.getElementById('food-c-input').value = '';
-        document.getElementById('food-f-input').value = '';
       }
-      modal?.classList.remove('hidden');
+    }
+
+    function changeDate(delta) {
+      currentDate.setDate(currentDate.getDate() + delta);
+      renderDay();
+    }
+
+    function openFormModal(item = null) {
+      editingMacroId = item ? item.id : null;
+      document.getElementById('modal-title').textContent = item ? 'Edit Food Entry' : 'Add Food Entry';
+      document.getElementById('food-name-input').value = item ? item.name : '';
+      document.getElementById('food-cal-input').value = item ? item.cal : '';
+      document.getElementById('food-p-input').value = item ? item.p : '';
+      document.getElementById('food-c-input').value = item ? item.c : '';
+      document.getElementById('food-f-input').value = item ? item.f : '';
+      document.getElementById('entry-modal').classList.remove('hidden');
     }
 
     function closeFormModal() {
-      document.getElementById('entry-modal')?.classList.add('hidden');
+      document.getElementById('entry-modal').classList.add('hidden');
       editingMacroId = null;
     }
 
@@ -2016,73 +1914,77 @@
       const f = parseFloat(document.getElementById('food-f-input').value) || 0;
 
       if (!name) {
-        showToast("Please enter a food name.");
+        showToast('Please enter a food name');
         return;
       }
 
-      const dateKey = formatDateKey(currentDate);
-      let logs = getLogsForDate(dateKey);
+      const currStr = getDateString(currentDate);
+      if (!foodLogs[currStr]) foodLogs[currStr] = [];
 
       if (editingMacroId) {
-        logs = logs.map(item => item.id == editingMacroId ? { ...item, name, cal, p, c, f } : item);
-        showToast("Updated food entry");
+        foodLogs[currStr] = foodLogs[currStr].map(item => item.id === editingMacroId ? { id: item.id, name, cal, p, c, f } : item);
       } else {
-        logs.push({ id: Date.now(), name, cal, p, c, f });
-        showToast("Added food entry");
+        foodLogs[currStr].push({ id: Date.now(), name, cal, p, c, f });
       }
 
-      saveLogsForDate(dateKey, logs);
       closeFormModal();
+      renderDay();
+      showToast('Food entry saved');
     }
 
-    function editEntry(id) {
-      openFormModal(id);
+    function editFoodEntry(id) {
+      const currStr = getDateString(currentDate);
+      const items = foodLogs[currStr] || [];
+      const item = items.find(i => i.id === id);
+      if (item) openFormModal(item);
     }
 
-    function deleteEntry(id) {
-      const dateKey = formatDateKey(currentDate);
-      let logs = getLogsForDate(dateKey);
-      logs = logs.filter(item => item.id != id);
-      saveLogsForDate(dateKey, logs);
-      showToast("Deleted food entry");
+    function deleteFoodEntry(id) {
+      const currStr = getDateString(currentDate);
+      if (foodLogs[currStr]) {
+        foodLogs[currStr] = foodLogs[currStr].filter(i => i.id !== id);
+        renderDay();
+        showToast('Food entry deleted');
+      }
     }
 
     function openSettings() {
-      document.getElementById('gemini-key-input').value = localStorage.getItem('gemini_api_key') || '';
+      document.getElementById('gemini-key-input').value = geminiApiKey;
       document.getElementById('goal-cal-input').value = goals.cal;
       document.getElementById('goal-p-input').value = goals.p;
       document.getElementById('goal-c-input').value = goals.c;
       document.getElementById('goal-f-input').value = goals.f;
-      document.getElementById('settings-modal')?.classList.remove('hidden');
+      document.getElementById('settings-modal').classList.remove('hidden');
     }
 
     function closeSettings() {
-      document.getElementById('settings-modal')?.classList.add('hidden');
+      document.getElementById('settings-modal').classList.add('hidden');
     }
 
     function saveSettings() {
-      const key = document.getElementById('gemini-key-input').value.trim();
-      if (key) {
-        localStorage.setItem('gemini_api_key', key);
-      } else {
-        localStorage.removeItem('gemini_api_key');
-      }
+      geminiApiKey = document.getElementById('gemini-key-input').value.trim();
+      goals.cal = parseInt(document.getElementById('goal-cal-input').value) || 2000;
+      goals.p = parseInt(document.getElementById('goal-p-input').value) || 150;
+      goals.c = parseInt(document.getElementById('goal-c-input').value) || 200;
+      goals.f = parseInt(document.getElementById('goal-f-input').value) || 65;
+      
+      localStorage.setItem('apex_gemini_key', geminiApiKey);
+      localStorage.setItem('apex_macro_goals', JSON.stringify(goals));
 
-      goals.cal = parseFloat(document.getElementById('goal-cal-input').value) || 2000;
-      goals.p = parseFloat(document.getElementById('goal-p-input').value) || 150;
-      goals.c = parseFloat(document.getElementById('goal-c-input').value) || 200;
-      goals.f = parseFloat(document.getElementById('goal-f-input').value) || 65;
-
-      localStorage.setItem('macro_goals', JSON.stringify(goals));
       closeSettings();
       renderDay();
-      showToast("Settings saved successfully");
+      showToast('Settings saved successfully');
     }
 
     function loadSettings() {
-      const savedGoals = localStorage.getItem('macro_goals');
+      const savedKey = localStorage.getItem('apex_gemini_key');
+      if (savedKey) geminiApiKey = savedKey;
+
+      const savedGoals = localStorage.getItem('apex_macro_goals');
       if (savedGoals) {
-        try { goals = JSON.parse(savedGoals); } catch(e){}
+        try {
+          goals = JSON.parse(savedGoals);
+        } catch (e) {}
       }
     }
 
@@ -2090,68 +1992,88 @@
       const file = event.target.files[0];
       if (!file) return;
 
-      const apiKey = localStorage.getItem('gemini_api_key');
-      if (!apiKey) {
-        showToast("Please enter your Gemini API Key in Settings first.");
+      if (!geminiApiKey) {
+        showToast('Please set your Gemini API Key in Settings first.');
         openSettings();
         event.target.value = '';
         return;
       }
 
-      const statusEl = document.getElementById('scan-status');
-      const statusText = document.getElementById('scan-status-text');
-      statusEl?.classList.remove('hidden');
-      statusText.innerText = "Processing image...";
+      const scanStatus = document.getElementById('scan-status');
+      const scanStatusText = document.getElementById('scan-status-text');
+      scanStatus?.classList.remove('hidden');
+      scanStatusText.textContent = 'Analyzing image with Gemini AI...';
 
       try {
-        const base64Data = await toBase64(file);
-        statusText.innerText = "Analyzing image with Gemini AI...";
+        const base64Data = await fileToBase64(file);
+        
+        const promptText = "Analyze this food or nutrition label image. Extract the food name, total calories (kcal), protein (g), carbs (g), and fat (g). Return ONLY valid JSON format like this: {\"name\": \"Food Name\", \"cal\": 300, \"p\": 25, \"c\": 30, \"f\": 10}";
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{
               parts: [
-                { text: "Analyze this food or nutrition label image. Estimate or extract the name of the food and total calories, protein (g), carbs (g), and fat (g). Return ONLY a raw JSON object with keys: name, cal, p, c, f. No markdown code blocks, just raw JSON." },
-                { inline_data: { mime_type: file.type, data: base64Data.split(',')[1] } }
+                { text: promptText },
+                {
+                  inlineData: {
+                    mimeType: file.type,
+                    data: base64Data
+                  }
+                }
               ]
             }]
           })
         });
 
+        if (!response.ok) {
+          throw new Error('API request failed with status ' + response.status);
+        }
+
         const data = await response.json();
-        const textResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        if (!textResponse) throw new Error("No response from AI");
+        if (!candidateText) {
+          throw new Error('No valid response received from model.');
+        }
 
-        // Clean formatting if any code blocks were returned
-        const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(cleanJson);
+        // Clean up markdown code blocks if returned
+        const cleanedJsonStr = candidateText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsedFood = JSON.parse(cleanedJsonStr);
 
-        document.getElementById('food-name-input').value = parsed.name || "Scanned Food";
-        document.getElementById('food-cal-input').value = parsed.cal || 0;
-        document.getElementById('food-p-input').value = parsed.p || 0;
-        document.getElementById('food-c-input').value = parsed.c || 0;
-        document.getElementById('food-f-input').value = parsed.f || 0;
+        const currStr = getDateString(currentDate);
+        if (!foodLogs[currStr]) foodLogs[currStr] = [];
 
-        openFormModal();
-        showToast("AI analysis complete!");
+        foodLogs[currStr].push({
+          id: Date.now(),
+          name: parsedFood.name || 'Scanned Food',
+          cal: Number(parsedFood.cal) || 0,
+          p: Number(parsedFood.p) || 0,
+          c: Number(parsedFood.c) || 0,
+          f: Number(parsedFood.f) || 0
+        });
+
+        renderDay();
+        showToast(`Successfully added: ${parsedFood.name || 'Scanned Food'}`);
       } catch (err) {
         console.error(err);
-        showToast("Failed to analyze image. Please check API key.");
+        showToast('Error scanning image. Please check your API key.');
       } finally {
-        statusEl?.classList.add('hidden');
+        scanStatus?.classList.add('hidden');
         event.target.value = '';
       }
     }
 
-    function toBase64(file) {
+    function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
+        reader.onload = () => {
+          const base64String = reader.result.split(',')[1];
+          resolve(base64String);
+        };
         reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
       });
     }
   </script>
