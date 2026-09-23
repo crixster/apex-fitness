@@ -707,6 +707,7 @@
     let goals = { cal: 2000, p: 150, c: 200, f: 65 };
     let foodLogs = {}; // Format: 'YYYY-MM-DD': [{ id, name, cal, p, c, f }]
     let geminiApiKey = '';
+    let cachedGeminiModel = null;
 
     window.onload = function() {
       renderExercises();
@@ -1903,7 +1904,6 @@
 
     function closeFormModal() {
       document.getElementById('entry-modal').classList.add('hidden');
-      editingMacroId = null;
     }
 
     function saveFoodEntry() {
@@ -1922,14 +1922,14 @@
       if (!foodLogs[currStr]) foodLogs[currStr] = [];
 
       if (editingMacroId) {
-        foodLogs[currStr] = foodLogs[currStr].map(item => item.id === editingMacroId ? { id: item.id, name, cal, p, c, f } : item);
+        foodLogs[currStr] = foodLogs[currStr].map(item => item.id === editingMacroId ? { ...item, name, cal, p, c, f } : item);
       } else {
         foodLogs[currStr].push({ id: Date.now(), name, cal, p, c, f });
       }
 
       closeFormModal();
       renderDay();
-      showToast('Food entry saved');
+      showToast('Saved food entry');
     }
 
     function editFoodEntry(id) {
@@ -1944,7 +1944,7 @@
       if (foodLogs[currStr]) {
         foodLogs[currStr] = foodLogs[currStr].filter(i => i.id !== id);
         renderDay();
-        showToast('Food entry deleted');
+        showToast('Deleted food entry');
       }
     }
 
@@ -1967,7 +1967,7 @@
       goals.p = parseInt(document.getElementById('goal-p-input').value) || 150;
       goals.c = parseInt(document.getElementById('goal-c-input').value) || 200;
       goals.f = parseInt(document.getElementById('goal-f-input').value) || 65;
-      
+
       localStorage.setItem('apex_gemini_key', geminiApiKey);
       localStorage.setItem('apex_macro_goals', JSON.stringify(goals));
 
@@ -1984,8 +1984,32 @@
       if (savedGoals) {
         try {
           goals = JSON.parse(savedGoals);
-        } catch (e) {}
+        } catch(e) {}
       }
+    }
+
+    async function resolveGeminiModel(apiKey) {
+      if (cachedGeminiModel) return cachedGeminiModel;
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (!res.ok) throw new Error('Model discovery failed');
+        const data = await res.json();
+        if (data && data.models) {
+          const validModels = data.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'));
+          const flashModel = validModels.find(m => m.name.includes('flash'));
+          if (flashModel) {
+            cachedGeminiModel = flashModel.name.replace('models/', '');
+            return cachedGeminiModel;
+          } else if (validModels.length > 0) {
+            cachedGeminiModel = validModels[0].name.replace('models/', '');
+            return cachedGeminiModel;
+          }
+        }
+      } catch (err) {
+        console.warn('Discovery fallback activated:', err);
+      }
+      cachedGeminiModel = 'gemini-3.8-flash';
+      return cachedGeminiModel;
     }
 
     async function handleImageScan(event) {
@@ -1993,88 +2017,78 @@
       if (!file) return;
 
       if (!geminiApiKey) {
-        showToast('Please set your Gemini API Key in Settings first.');
+        showToast('Please configure your Gemini API Key in Settings first.');
         openSettings();
-        event.target.value = '';
         return;
       }
 
-      const scanStatus = document.getElementById('scan-status');
-      const scanStatusText = document.getElementById('scan-status-text');
-      scanStatus?.classList.remove('hidden');
-      scanStatusText.textContent = 'Analyzing image with Gemini AI...';
+      const statusDiv = document.getElementById('scan-status');
+      const statusText = document.getElementById('scan-status-text');
+      statusDiv.classList.remove('hidden');
+      statusText.textContent = 'Discovering optimal Gemini model...';
 
       try {
-        const base64Data = await fileToBase64(file);
-        
-        const promptText = "Analyze this food or nutrition label image. Extract the food name, total calories (kcal), protein (g), carbs (g), and fat (g). Return ONLY valid JSON format like this: {\"name\": \"Food Name\", \"cal\": 300, \"p\": 25, \"c\": 30, \"f\": 10}";
+        const modelName = await resolveGeminiModel(geminiApiKey);
+        statusText.textContent = `Analyzing image with Gemini model (${modelName})...`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: promptText },
-                {
-                  inlineData: {
-                    mimeType: file.type,
-                    data: base64Data
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          const base64Data = e.target.result.split(',')[1];
+          const mimeType = file.type || 'image/jpeg';
+
+          const payload = {
+            contents: [
+              {
+                parts: [
+                  { text: "Analyze this food or nutrition label image and extract the food name, total calories (kcal), protein (g), carbohydrates (g), and fat (g). Return ONLY valid JSON format like: {\"name\": \"Food Name\", \"cal\": 350, \"p\": 25, \"c\": 40, \"f\": 10}." },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64Data
+                    }
                   }
-                }
-              ]
-            }]
-          })
-        });
+                ]
+              }
+            ]
+          };
 
-        if (!response.ok) {
-          throw new Error('API request failed with status ' + response.status);
-        }
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
 
-        const data = await response.json();
-        const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!response.ok) throw new Error('API request failed');
 
-        if (!candidateText) {
-          throw new Error('No valid response received from model.');
-        }
+          const result = await response.json();
+          const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!candidateText) throw new Error('Invalid response structure');
 
-        // Clean up markdown code blocks if returned
-        const cleanedJsonStr = candidateText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsedFood = JSON.parse(cleanedJsonStr);
+          const cleanJsonStr = candidateText.replace(/```json/g, '').replace(/```/g, '').trim();
+          const parsedData = JSON.parse(cleanJsonStr);
 
-        const currStr = getDateString(currentDate);
-        if (!foodLogs[currStr]) foodLogs[currStr] = [];
+          const currStr = getDateString(currentDate);
+          if (!foodLogs[currStr]) foodLogs[currStr] = [];
+          foodLogs[currStr].push({
+            id: Date.now(),
+            name: parsedData.name || 'Scanned Food',
+            cal: parsedData.cal || 0,
+            p: parsedData.p || 0,
+            c: parsedData.c || 0,
+            f: parsedData.f || 0
+          });
 
-        foodLogs[currStr].push({
-          id: Date.now(),
-          name: parsedFood.name || 'Scanned Food',
-          cal: Number(parsedFood.cal) || 0,
-          p: Number(parsedFood.p) || 0,
-          c: Number(parsedFood.c) || 0,
-          f: Number(parsedFood.f) || 0
-        });
-
-        renderDay();
-        showToast(`Successfully added: ${parsedFood.name || 'Scanned Food'}`);
+          renderDay();
+          showToast(`Successfully added ${parsedData.name || 'Scanned Food'} via ${modelName}!`);
+        };
+        reader.readAsDataURL(file);
       } catch (err) {
         console.error(err);
-        showToast('Error scanning image. Please check your API key.');
+        showToast('Failed to scan image. Please check API key or image quality.');
       } finally {
-        scanStatus?.classList.add('hidden');
+        statusDiv.classList.add('hidden');
         event.target.value = '';
       }
-    }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64String = reader.result.split(',')[1];
-          resolve(base64String);
-        };
-        reader.onerror = error => reject(error);
-        reader.readAsDataURL(file);
-      });
     }
   </script>
 </body>
