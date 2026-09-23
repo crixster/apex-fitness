@@ -1,1237 +1,1615 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f172a">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Gym Tracker">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gym Tracker & Plate Loader</title>
-  
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2338bdf8'><rect width='512' height='512' rx='100' fill='%230f172a'/><path d='M100 230h312v52H100z'/><rect x='60' y='180' width='40' height='152' rx='10' fill='%23ef4444'/><rect x='412' y='180' width='40' height='152' rx='10' fill='%23ef4444'/><rect x='120' y='196' width='30' height='120' rx='8' fill='%233b82f6'/><rect x='362' y='196' width='30' height='120' rx='8' fill='%233b82f6'/></svg>">
-
-  <script>
-    const manifestData = {
-      "name": "Gym Tracker & Plate Loader",
-      "short_name": "GymTracker",
-      "start_url": "./",
-      "display": "standalone",
-      "background_color": "#0f172a",
-      "theme_color": "#0f172a",
-      "orientation": "portrait",
-      "icons": [
-        {
-          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2338bdf8'><rect width='512' height='512' rx='100' fill='%230f172a'/><path d='M100 230h312v52H100z'/><rect x='60' y='180' width='40' height='152' rx='10' fill='%23ef4444'/><rect x='412' y='180' width='40' height='152' rx='10' fill='%23ef4444'/><rect x='120' y='196' width='30' height='120' rx='8' fill='%233b82f6'/><rect x='362' y='196' width='30' height='120' rx='8' fill='%233b82f6'/></svg>",
-          "sizes": "512x512",
-          "type": "image/svg+xml",
-          "purpose": "any maskable"
-        }
-      ]
-    };
-    const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
-    const manifestURL = URL.createObjectURL(manifestBlob);
-    const link = document.createElement('link');
-    link.rel = 'manifest';
-    link.href = manifestURL;
-    document.head.appendChild(link);
-  </script>
-
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: #0f172a;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0f172a;
       color: #f8fafc;
-      line-height: 1.5;
-      padding: 12px;
-      min-height: 100vh;
-    }
-    
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      background: #1e293b;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
-      overflow: hidden;
-      border: 1px solid #334155;
-    }
-    
-    .header {
-      padding: 1.25rem 1rem 0.75rem;
-      background: #0f172a;
-      border-bottom: 1px solid #334155;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .header h1 {
-      font-size: 18px;
-      font-weight: 700;
-      color: #38bdf8;
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
 
-    .install-btn {
-      background: #38bdf8;
-      color: #0f172a;
-      border: none;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 700;
-      border-radius: 6px;
-      cursor: pointer;
-      display: none;
+    .plate-hover {
+      transition: transform 0.15s ease, filter 0.15s ease;
     }
-    
-    .tabs {
-      display: flex;
-      background: #0f172a;
-      border-bottom: 1px solid #334155;
-    }
-    
-    .tab-btn {
-      flex: 1;
-      padding: 0.85rem;
-      background: none;
-      border: none;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      color: #64748b;
-      border-bottom: 3px solid transparent;
-      transition: all 0.2s;
-    }
-    
-    .tab-btn.active {
-      color: #38bdf8;
-      border-bottom-color: #38bdf8;
-    }
-    
-    .content {
-      padding: 1rem;
-    }
-    
-    .tab-pane {
-      display: none;
-    }
-    
-    .tab-pane.active {
-      display: block;
-    }
-    
-    .form-group {
-      margin-bottom: 1rem;
-      padding: 1rem;
-      background: #0f172a;
-      border-radius: 8px;
-      border: 1px solid #334155;
-    }
-    
-    .form-group h3 {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 10px;
-      color: #94a3b8;
-    }
-    
-    .form-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    
-    input, select {
-      flex: 1;
-      padding: 10px 12px;
-      font-size: 14px;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      background: #1e293b;
-      color: #f8fafc;
-      font-family: inherit;
+    .plate-hover:hover {
+      transform: translateY(-2px) scale(1.04);
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
     }
 
-    input::placeholder {
-      color: #64748b;
-    }
-    
-    input:focus, select:focus {
-      outline: none;
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    .autocomplete-wrapper {
-      position: relative;
-      width: 100%;
-      margin-bottom: 8px;
+    .plate-btn-touch {
+      touch-action: manipulation;
     }
 
-    .suggestions-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      max-height: 160px;
-      overflow-y: auto;
-      z-index: 100;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      display: none;
+    /* Custom scrollbar for dropdown suggestions */
+    .suggestions-list::-webkit-scrollbar {
+      width: 6px;
     }
-
-    .suggestion-item {
-      padding: 8px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      color: #e2e8f0;
-      border-bottom: 1px solid #334155;
-    }
-
-    .suggestion-item:last-child {
-      border-bottom: none;
-    }
-
-    .suggestion-item:hover {
-      background: #334155;
-      color: #38bdf8;
-    }
-    
-    .btn {
-      padding: 10px 14px;
-      font-size: 13px;
-      font-weight: 600;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-    }
-    
-    .btn-primary {
-      background: #38bdf8;
-      color: #0f172a;
-      width: 100%;
-    }
-    
-    .btn-primary:hover {
-      background: #0284c7;
-      color: #fff;
-    }
-    
-    .btn-secondary {
-      background: #334155;
-      color: #f8fafc;
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-    
-    .btn-secondary:hover {
+    .suggestions-list::-webkit-scrollbar-thumb {
       background: #475569;
-    }
-    
-    .btn-danger {
-      background: #ef4444;
-      color: white;
-      padding: 4px 8px;
-      font-size: 11px;
-    }
-    
-    .btn-danger:hover {
-      background: #dc2626;
-    }
-
-    .collapsible-card {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      overflow: hidden;
-    }
-
-    .collapsible-header {
-      padding: 10px 14px;
-      background: #1e293b;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      user-select: none;
-    }
-
-    .collapsible-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #38bdf8;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .collapsible-body {
-      padding: 12px;
-      display: none;
-      border-top: 1px solid #334155;
-    }
-
-    .collapsible-body.open {
-      display: block;
-    }
-
-    .exercise-group {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      overflow: hidden;
-    }
-
-    .exercise-group-header {
-      padding: 10px 12px;
-      background: #1e293b;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-    }
-
-    .exercise-group-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #f8fafc;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .exercise-group-body {
-      display: none;
-      padding: 8px;
-    }
-
-    .exercise-group-body.open {
-      display: block;
-    }
-
-    .set-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px;
-      background: #1e293b;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      border: 1px solid #334155;
-      font-size: 13px;
-    }
-
-    .set-details {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .set-badge {
-      background: #0f172a;
-      padding: 2px 6px;
       border-radius: 4px;
-      color: #38bdf8;
-      font-size: 11px;
-      font-weight: 600;
-      border: 1px solid #334155;
-    }
-    
-    .barbell-container {
-      padding: 1rem 0.5rem;
-      background: #0f172a;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-    
-    .barbell-label {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-bottom: 8px;
-    }
-
-    .svg-barbell-wrapper {
-      width: 100%;
-      overflow-x: auto;
-      display: flex;
-      justify-content: center;
-      padding: 10px 0;
-    }
-
-    .plates-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 8px;
-    }
-    
-    .plate-card {
-      padding: 8px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 12px;
-    }
-    
-    .plate-card-name {
-      color: #94a3b8;
-      margin-bottom: 4px;
-      font-size: 11px;
-    }
-    
-    .plate-card-count {
-      color: #f8fafc;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    
-    .plate-card-buttons {
-      display: flex;
-      gap: 4px;
-    }
-    
-    .plate-btn {
-      flex: 1;
-      padding: 6px;
-      font-size: 12px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 700;
-    }
-    
-    .plate-btn-add {
-      background: #38bdf8;
-      color: #0f172a;
-    }
-
-    .plate-btn-add:hover {
-      background: #0284c7;
-      color: #fff;
-    }
-    
-    .plate-btn-remove {
-      background: #334155;
-      color: #f8fafc;
-    }
-
-    .plate-btn-remove:hover {
-      background: #475569;
-    }
-    
-    .inventory-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    
-    .inventory-header h3 {
-      font-size: 13px;
-      font-weight: 700;
-      color: #94a3b8;
-      margin: 0;
-      text-transform: uppercase;
-    }
-
-    .interactive-plate-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      cursor: pointer;
-    }
-
-    .interactive-plate-wrapper svg:hover {
-      filter: brightness(1.15);
-      transform: scale(1.03);
-    }
-
-    .rm-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 8px;
-    }
-
-    .rm-card {
-      background: #1e293b;
-      padding: 8px 10px;
-      border-radius: 6px;
-      border: 1px solid #334155;
-    }
-
-    .rm-card-title {
-      font-size: 11px;
-      color: #94a3b8;
-      font-weight: 600;
-    }
-
-    .rm-card-val {
-      font-size: 15px;
-      font-weight: 700;
-      color: #38bdf8;
-      margin-top: 2px;
-    }
-
-    .edit-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.75);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    .edit-modal.active {
-      display: flex;
-    }
-
-    .edit-modal-content {
-      background: #1e293b;
-      border-radius: 10px;
-      padding: 16px;
-      width: 100%;
-      max-width: 400px;
-      border: 1px solid #334155;
-    }
-
-    .edit-modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .edit-modal-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #38bdf8;
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>🏋️ Gym Tracker & Loader</h1>
-      <button id="installAppBtn" class="install-btn">📲 Install</button>
+<body class="min-h-screen pb-12">
+
+  <div class="max-w-xl mx-auto px-4 pt-6">
+    <header class="text-center mb-6">
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400">
+        💪 Gym Tracker & Plate Loader
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-400 mt-1">Smart barbell loading calculator & workout log</p>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="flex bg-slate-800/80 p-1 rounded-xl mb-6 border border-slate-700/50">
+      <button id="tabBtnLog" onclick="switchTab('log')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
+        Lifting Log
+      </button>
+      <button id="tabBtnPlates" onclick="switchTab('plates')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-300 hover:text-white">
+        Plate Loader
+      </button>
     </div>
-    
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('log')">Lifting Log</button>
-      <button class="tab-btn" onclick="switchTab('plates')">Plate Loader</button>
-    </div>
-    
-    <div class="content">
+
+    <!-- MAIN CONTENT PANE -->
+    <main>
       <!-- Lifting Log Tab -->
-      <div id="log" class="tab-pane active">
-        <!-- 1RM Calculator Collapsible -->
-        <div class="collapsible-card">
-          <div class="collapsible-header" onclick="toggleCollapsible('rmCalcBody')">
-            <span class="collapsible-title">📊 Theoretical 1-Rep Max (1RM)</span>
-            <span id="rmCalcIcon" style="color:#94a3b8; font-size:12px;">▼</span>
-          </div>
-          <div id="rmCalcBody" class="collapsible-body">
-            <div class="rm-grid" id="rmGrid"></div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 8px;">
-              *Estimated using Epley formula: Weight × (1 + Reps/30).
+      <div id="logTab" class="space-y-5">
+        
+        <!-- Collapsible Theoretical 1RM Calculator -->
+        <div class="glass-card rounded-2xl p-4 shadow-xl border border-indigo-500/20">
+          <button onclick="toggle1RMCard()" class="w-full flex items-center justify-between text-left focus:outline-none">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🏆</span>
+              <div>
+                <h3 class="text-sm font-bold text-slate-100">Theoretical 1RM Breakdown</h3>
+                <p class="text-[11px] text-slate-400">Estimated max lift for key compound movements</p>
+              </div>
+            </div>
+            <span id="oneRMChevron" class="text-xs text-indigo-400 font-bold transition-transform duration-200">▼ Show</span>
+          </button>
+
+          <div id="oneRMContent" class="hidden mt-4 pt-3 border-t border-slate-700/60 space-y-3">
+            <p class="text-[11px] text-slate-400 italic">Calculated using the Epley formula <code class="text-indigo-300">Weight × (1 + Reps/30)</code> based on top logged sets.</p>
+
+            <div class="grid grid-cols-1 gap-2.5 text-xs" id="oneRMGrid">
+              <!-- Dynamically rendered 1RM cards -->
             </div>
           </div>
         </div>
 
-        <!-- Log Entry Form -->
-        <div class="form-group">
-          <h3>Log New Set</h3>
-          <div class="autocomplete-wrapper">
-            <input type="text" id="exerciseName" placeholder="Exercise name (e.g. Bench Press)" oninput="handleExerciseTyping()" onfocus="handleExerciseTyping()">
-            <div id="suggestionsList" class="suggestions-list"></div>
+        <!-- Collapsible Weight Suggestions & Rep Converter -->
+        <div class="glass-card rounded-2xl p-4 shadow-xl border border-emerald-500/20">
+          <button onclick="toggleSuggestionsCard()" class="w-full flex items-center justify-between text-left focus:outline-none">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">💡</span>
+              <div>
+                <h3 class="text-sm font-bold text-slate-100">Weight Suggestions & Target Converter</h3>
+                <p class="text-[11px] text-slate-400">Get target working weights adjusted for reps and tempo notation</p>
+              </div>
+            </div>
+            <span id="suggestionsChevron" class="text-xs text-emerald-400 font-bold transition-transform duration-200">▼ Show</span>
+          </button>
+
+          <div id="suggestionsContent" class="hidden mt-4 pt-3 border-t border-slate-700/60 space-y-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+              <div class="col-span-2 sm:col-span-1">
+                <label class="text-[11px] text-slate-400 font-medium block mb-1">Exercise</label>
+                <select id="suggestionExerciseSelect" onchange="onSuggestionExerciseChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-medium">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <div>
+                <label class="text-[11px] text-slate-400 font-medium block mb-1">Target Sets</label>
+                <input type="number" id="suggestionTargetSets" value="3" min="1" step="1" oninput="renderWeightSuggestions()" onchange="renderWeightSuggestions()"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="text-[11px] text-slate-400 font-medium block mb-1">Target Reps</label>
+                <input type="number" id="suggestionTargetReps" value="8" min="1" max="50" step="1" oninput="renderWeightSuggestions()" onchange="renderWeightSuggestions()"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+              </div>
+
+              <div>
+                <div class="flex items-center gap-1 mb-1">
+                  <label class="text-[11px] text-slate-400 font-medium">Target Tempo</label>
+                  <div class="relative group inline-block cursor-pointer">
+                    <span class="text-[10px] text-slate-400 hover:text-indigo-400 border border-slate-600 rounded-full w-3.5 h-3.5 inline-flex items-center justify-center font-bold">ⓘ</span>
+                    <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl text-[11px] text-slate-200 z-50 pointer-events-none">
+                      <p class="font-bold text-slate-100 mb-1.5">A tempo prescription uses four numbers (e.g., <span class="text-indigo-300">3-0-1-0</span>) to tell you how many seconds to spend on each part of the movement:</p>
+                      <ul class="space-y-1 list-disc pl-3 text-slate-300 text-[10px] leading-tight">
+                        <li><strong>1st Digit (Eccentric):</strong> The time in seconds to lower the weight.</li>
+                        <li><strong>2nd Digit (Bottom Pause):</strong> The time in seconds to pause at the bottom of the lift.</li>
+                        <li><strong>3rd Digit (Concentric):</strong> The time in seconds to lift or push the weight back up. (An <strong>X</strong> means lift as fast and explosively as possible).</li>
+                        <li><strong>4th Digit (Top Pause):</strong> The time in seconds to pause at the top of the lift.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <input type="text" id="suggestionTargetTempo" value="2-0-1-0" placeholder="2010 or 2-0-1-0" oninput="renderWeightSuggestions()" onchange="renderWeightSuggestions()" onblur="this.value = formatTempo(this.value); renderWeightSuggestions();"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+
+            <!-- Dynamic Output Box -->
+            <div id="suggestionResultBox" class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-3">
+              <!-- Result injected here -->
+            </div>
           </div>
+        </div>
+
+        <!-- Add New Log Entry Form -->
+        <div class="glass-card rounded-2xl p-5 shadow-xl space-y-3 relative">
+          <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+            <span>⚡</span> Log Exercise Set
+          </h2>
           
-          <div class="form-row">
-            <input type="number" id="exerciseWeight" placeholder="Weight" step="0.5">
-            <select id="exerciseUnit" style="flex: 0 0 70px;">
-              <option>kg</option>
-              <option>lb</option>
-            </select>
-            <input type="number" id="exerciseReps" placeholder="Reps" step="1" style="flex: 0 0 75px;">
+          <div class="relative">
+            <label class="text-xs text-slate-400 font-medium block mb-1">Exercise Name</label>
+            <input type="text" id="exerciseName" autocomplete="off" oninput="handleExerciseInput()" onfocus="handleExerciseInput()" placeholder="Type to search or add new (e.g., Push Ups, Dips, Bench Press)" 
+              class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            
+            <!-- Autocomplete Suggestions -->
+            <div id="exerciseSuggestions" class="hidden absolute left-0 right-0 top-[100%] mt-1 bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden max-h-48 overflow-y-auto suggestions-list backdrop-blur-md">
+              <!-- Suggestions injected here -->
+            </div>
           </div>
 
-          <div class="form-row">
-            <input type="text" id="exerciseTempo" placeholder="Tempo (e.g. 3-1-X-1)" style="flex: 1;">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
+            <div class="col-span-1">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs text-slate-400 font-medium">Weight</label>
+                <!-- Bodyweight Checkbox Button -->
+                <label class="inline-flex items-center gap-1 cursor-pointer select-none" title="Tick for bodyweight exercises (Push Ups, Dips, Pull Ups)">
+                  <input type="checkbox" id="exerciseBW" onchange="onBWCheckboxChange('log')" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700 cursor-pointer">
+                  <span class="text-[11px] text-indigo-300 font-bold">BW</span>
+                </label>
+              </div>
+              <input type="number" id="exerciseWeight" placeholder="0" step="0.5" 
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 font-medium block mb-1">Unit</label>
+              <select id="exerciseUnit" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                <option value="kg">kg</option>
+                <option value="lb">lb</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 font-medium block mb-1">Sets</label>
+              <input type="number" id="exerciseSets" value="3" min="1" step="1" 
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 font-medium block mb-1">Reps</label>
+              <input type="number" id="exerciseReps" placeholder="10" step="1" 
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <div class="flex items-center gap-1 mb-1">
+                <label class="text-xs text-slate-400 font-medium">Tempo</label>
+                <div class="relative group inline-block cursor-pointer">
+                  <span class="text-[10px] text-slate-400 hover:text-indigo-400 border border-slate-600 rounded-full w-3.5 h-3.5 inline-flex items-center justify-center font-bold">ⓘ</span>
+                  <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl text-[11px] text-slate-200 z-50 pointer-events-none">
+                    <p class="font-bold text-slate-100 mb-1.5">A tempo prescription uses four numbers (e.g., <span class="text-indigo-300">3-0-1-0</span>) to tell you how many seconds to spend on each part of the movement:</p>
+                    <ul class="space-y-1 list-disc pl-3 text-slate-300 text-[10px] leading-tight">
+                      <li><strong>1st Digit (Eccentric):</strong> The time in seconds to lower the weight.</li>
+                      <li><strong>2nd Digit (Bottom Pause):</strong> The time in seconds to pause at the bottom of the lift.</li>
+                      <li><strong>3rd Digit (Concentric):</strong> The time in seconds to lift or push the weight back up. (An <strong>X</strong> means lift as fast and explosively as possible).</li>
+                      <li><strong>4th Digit (Top Pause):</strong> The time in seconds to pause at the top of the lift.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <input type="text" id="exerciseTempo" placeholder="2010 or 2-0-1-0" value="2-0-1-0" onblur="this.value = formatTempo(this.value)" 
+                class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
           </div>
 
-          <button class="btn btn-primary" onclick="addExercise()">Add Set Record</button>
+          <button onclick="addExercise()" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-semibold py-2.5 rounded-lg text-sm shadow-md transition-all">
+            Save Set Record
+          </button>
         </div>
 
-        <!-- Search & Filter Bar -->
-        <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
-          <input type="text" id="searchLog" placeholder="🔍 Search exercises..." oninput="renderExercises()" style="padding: 8px 12px; font-size: 13px;">
-          <button class="btn btn-secondary" onclick="toggleAllGroups(true)">Expand</button>
-          <button class="btn btn-secondary" onclick="toggleAllGroups(false)">Collapse</button>
+        <!-- Search & Filter Logged Exercises -->
+        <div class="space-y-3">
+          <div class="flex flex-col sm:flex-row gap-2 items-center justify-between">
+            <div class="relative w-full">
+              <input type="text" id="searchLog" oninput="renderExercises()" placeholder="🔍 Search logged exercises..." 
+                class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 shadow-inner">
+            </div>
+            <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end text-xs">
+              <button onclick="toggleAllGroups(true)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg border border-slate-700 transition">
+                Expand All
+              </button>
+              <button onclick="toggleAllGroups(false)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg border border-slate-700 transition">
+                Collapse All
+              </button>
+            </div>
+          </div>
+
+          <!-- Grouped Records List -->
+          <div id="exercisesList" class="space-y-3">
+            <!-- Dynamically populated grouped accordions -->
+          </div>
         </div>
-        
-        <!-- Grouped Exercises Accordion List -->
-        <div id="exercisesList"></div>
+
       </div>
-      
+
       <!-- Plate Loader Tab -->
-      <div id="plates" class="tab-pane">
-        <div class="form-group">
-          <h3>Target Weight</h3>
-          <div class="form-row">
-            <input type="number" id="targetWeight" value="83" step="0.5" style="flex: 1;" oninput="updateTargetDisplay()">
-            <select id="loaderUnit" style="flex: 0 0 70px;" onchange="updateTargetDisplay()">
-              <option>kg</option>
-              <option>lb</option>
-            </select>
-          </div>
-          <div id="targetDisplay" style="margin-top: 4px; font-size: 13px; color: #38bdf8; font-weight: 600;"></div>
-        </div>
+      <div id="platesTab" class="hidden space-y-5">
         
-        <div class="form-group">
-          <h3>Barbell Base Weight</h3>
-          <select id="barWeight" style="width: 100%;" onchange="updateBarWeight()">
-            <option value="20">20 kg (45 lb)</option>
-            <option value="15">15 kg (33 lb)</option>
+        <!-- Target & Barbell Inputs Card -->
+        <div class="glass-card rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="border-b border-slate-700/60 pb-3">
+            <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+              <span>🏋️‍♂️</span> Plate Loader Calculator
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Target Weight & Unit -->
+            <div class="space-y-1">
+              <label class="text-xs font-semibold text-slate-300 block">Target Weight</label>
+              <div class="flex items-center gap-2">
+                <input type="number" id="targetWeight" value="100" step="0.5" oninput="onTargetInputChanged()" 
+                  class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium">
+                <select id="loaderUnit" onchange="onUnitChanged()" class="bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none font-medium">
+                  <option value="kg">kg</option>
+                  <option value="lb">lb</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Barbell Weight Selection -->
+            <div class="space-y-1">
+              <label class="text-xs font-semibold text-slate-300 block">Barbell Weight</label>
+              <select id="barWeight" onchange="onBarWeightSelectChange()" class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none font-medium">
+                <option value="20">20 kg (Standard Men's)</option>
+                <option value="15">15 kg (Women's / Technique)</option>
+                <option value="custom">Custom Barbell Weight...</option>
+              </select>
+
+              <!-- Custom Barbell Weight Input Field -->
+              <div id="customBarContainer" class="hidden mt-2 flex items-center gap-2">
+                <input type="number" id="customBarWeight" placeholder="Enter bar weight" value="10" step="0.5" oninput="onCustomBarInput()"
+                  class="w-full bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <span id="customBarUnitLabel" class="text-xs text-slate-400 font-semibold">kg</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barbell Visualizer Card -->
+        <div class="glass-card rounded-2xl p-4 sm:p-5 shadow-2xl overflow-hidden border border-indigo-500/20">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Barbell Visualizer</span>
+              <div id="barbellTotalBadge" class="text-xs sm:text-sm font-extrabold text-emerald-400 mt-0.5">
+                Total: 0 kg / 0 lb
+              </div>
+            </div>
+            
+            <button onclick="clearBarbell()" class="py-2 px-3.5 bg-rose-500/15 hover:bg-rose-500/25 active:scale-95 text-rose-300 border border-rose-500/30 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition shadow-sm">
+              <span>🗑️</span> Clear All Plates
+            </button>
+          </div>
+
+          <!-- Dynamic Bar Visualizer Container -->
+          <div class="w-full bg-slate-950/80 rounded-xl p-3 flex flex-col items-center justify-center min-h-[220px] border border-slate-800 relative">
+            <div id="barbellVisualizer" class="w-full flex items-center justify-center overflow-x-auto py-2">
+              <!-- SVG Visualizer injected here -->
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2 text-center">💡 Click loaded plate to unload pair. Click plate in inventory below to add.</p>
+          </div>
+        </div>
+
+        <!-- Inventory Grid Card -->
+        <div class="glass-card rounded-2xl p-5 shadow-xl">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-white">Available Plates Inventory</h3>
+              <p class="text-xs text-slate-400">Adjust stock or tap plate graphic to load onto bar</p>
+            </div>
+            <button onclick="resetPlatesInventory()" class="text-xs font-semibold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700">
+              Reset Stock
+            </button>
+          </div>
+
+          <!-- Grid of Plates -->
+          <div id="platesGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Edit Set Record Modal -->
+  <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="glass-card rounded-2xl p-5 max-w-sm w-full space-y-4 border border-slate-700 shadow-2xl">
+      <h3 class="text-base font-bold text-white flex items-center gap-2">
+        ✏️ Edit Record
+      </h3>
+      <input type="hidden" id="editId">
+      
+      <div>
+        <label class="text-xs text-slate-400 font-medium block mb-1">Exercise Name</label>
+        <input type="text" id="editName" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs text-slate-400 font-medium">Weight</label>
+            <!-- Bodyweight Checkbox in Edit Modal -->
+            <label class="inline-flex items-center gap-1 cursor-pointer select-none" title="Bodyweight exercise">
+              <input type="checkbox" id="editBW" onchange="onBWCheckboxChange('edit')" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700 cursor-pointer">
+              <span class="text-[11px] text-indigo-300 font-bold">BW</span>
+            </label>
+          </div>
+          <input type="number" id="editWeight" step="0.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 font-medium block mb-1">Unit</label>
+          <select id="editUnit" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            <option value="kg">kg</option>
+            <option value="lb">lb</option>
           </select>
         </div>
-        
-        <div id="barbellDisplay"></div>
-        
-        <div class="form-group">
-          <div class="inventory-header">
-            <h3>Available Plates Inventory</h3>
-            <button class="btn btn-secondary" onclick="resetPlates()">Reset All</button>
-          </div>
-          <div class="plates-grid" id="platesGrid"></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-xs text-slate-400 font-medium block mb-1">Sets</label>
+          <input type="number" id="editSets" min="1" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
         </div>
+        <div>
+          <label class="text-xs text-slate-400 font-medium block mb-1">Reps</label>
+          <input type="number" id="editReps" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-1 mb-1">
+          <label class="text-xs text-slate-400 font-medium block">Tempo</label>
+          <div class="relative group inline-block cursor-pointer">
+            <span class="text-[10px] text-slate-400 hover:text-indigo-400 border border-slate-600 rounded-full w-3.5 h-3.5 inline-flex items-center justify-center font-bold">ⓘ</span>
+            <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl text-[11px] text-slate-200 z-50 pointer-events-none">
+              <p class="font-bold text-slate-100 mb-1.5">A tempo prescription uses four numbers (e.g., <span class="text-indigo-300">3-0-1-0</span>) to tell you how many seconds to spend on each part of the movement:</p>
+              <ul class="space-y-1 list-disc pl-3 text-slate-300 text-[10px] leading-tight">
+                <li><strong>1st Digit (Eccentric):</strong> The time in seconds to lower the weight.</li>
+                <li><strong>2nd Digit (Bottom Pause):</strong> The time in seconds to pause at the bottom of the lift.</li>
+                <li><strong>3rd Digit (Concentric):</strong> The time in seconds to lift or push the weight back up. (An <strong>X</strong> means lift as fast and explosively as possible).</li>
+                <li><strong>4th Digit (Top Pause):</strong> The time in seconds to pause at the top of the lift.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <input type="text" id="editTempo" placeholder="2010 or 2-0-1-0" onblur="this.value = formatTempo(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeEditModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg text-xs transition">
+          Cancel
+        </button>
+        <button onclick="saveEditModal()" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition shadow-md">
+          Save Changes
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Edit Set Modal -->
-  <div id="editModal" class="edit-modal">
-    <div class="edit-modal-content">
-      <div class="edit-modal-header">
-        <span class="edit-modal-title">✏️ Edit Set Record</span>
-        <button class="btn btn-secondary" onclick="closeEditModal()">✕</button>
+  <!-- Group Rename Modal -->
+  <div id="renameGroupModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="glass-card rounded-2xl p-5 max-w-sm w-full space-y-4 border border-slate-700 shadow-2xl">
+      <h3 class="text-base font-bold text-white flex items-center gap-2">
+        ✏️ Rename Exercise Group
+      </h3>
+      <input type="hidden" id="renameOldGroupKey">
+      
+      <div>
+        <label class="text-xs text-slate-400 font-medium block mb-1">New Exercise Name</label>
+        <input type="text" id="renameNewGroupInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
       </div>
-      <input type="hidden" id="editSetId">
-      <div style="margin-bottom: 8px;">
-        <label style="font-size: 11px; color: #94a3b8;">Exercise Name</label>
-        <input type="text" id="editSetExercise" style="width: 100%;">
+
+      <p class="text-[11px] text-slate-400">Renaming will update all logged historical sets for this exercise movement.</p>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeRenameGroupModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg text-xs transition">
+          Cancel
+        </button>
+        <button onclick="saveGroupRename()" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition shadow-md">
+          Rename All
+        </button>
       </div>
-      <div class="form-row">
-        <div style="flex: 1;">
-          <label style="font-size: 11px; color: #94a3b8;">Weight</label>
-          <input type="number" id="editSetWeight" step="0.5">
-        </div>
-        <div style="flex: 0 0 70px;">
-          <label style="font-size: 11px; color: #94a3b8;">Unit</label>
-          <select id="editSetUnit">
-            <option>kg</option>
-            <option>lb</option>
-          </select>
-        </div>
-        <div style="flex: 0 0 75px;">
-          <label style="font-size: 11px; color: #94a3b8;">Reps</label>
-          <input type="number" id="editSetReps">
-        </div>
-      </div>
-      <div style="margin-bottom: 12px;">
-        <label style="font-size: 11px; color: #94a3b8;">Tempo</label>
-        <input type="text" id="editSetTempo" style="width: 100%;">
-      </div>
-      <button class="btn btn-primary" onclick="saveEditedSet()">Save Changes</button>
     </div>
+  </div>
+
+  <!-- Message Toast Banner -->
+  <div id="toastMessage" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl z-50 transition-all border border-indigo-400/30">
+    Notification
   </div>
 
   <script>
-    // Plate Definitions
     const plateDefinitions = [
-      { id: 'red25kg', name: 'Red', weight: 25, unit: 'kg', color: '#ef4444', height: 110, width: 22 },
-      { id: 'blue20kg', name: 'Blue', weight: 20, unit: 'kg', color: '#3b82f6', height: 104, width: 20 },
-      { id: 'yellow15kg', name: 'Yellow', weight: 15, unit: 'kg', color: '#eab308', height: 96, width: 18 },
-      { id: 'green10kg', name: 'Green', weight: 10, unit: 'kg', color: '#22c55e', height: 86, width: 16 },
-      { id: 'white5kg', name: 'White', weight: 5, unit: 'kg', color: '#f8fafc', textColor: '#0f172a', height: 72, width: 14 },
-      { id: 'orange2d5kg', name: 'Orange', weight: 2.5, unit: 'kg', color: '#f97316', height: 60, width: 14 },
-      { id: 'yellow1d5kg', name: 'Yellow', weight: 1.5, unit: 'kg', color: '#fde047', textColor: '#0f172a', height: 52, width: 14 },
-      { id: 'white1kg', name: 'White', weight: 1, unit: 'kg', color: '#f8fafc', textColor: '#0f172a', height: 46, width: 14 },
-      { id: 'blackpat25lb', name: 'Black/grey', weight: 25, unit: 'lb', color: '#475569', height: 96, width: 20 },
-      { id: 'black15lb', name: 'Black', weight: 15, unit: 'lb', color: '#334155', height: 86, width: 18 },
-      { id: 'grey10lb', name: 'Grey', weight: 10, unit: 'lb', color: '#64748b', height: 76, width: 16 }
-    ];
-    
-    let selectedBarWeight = 20;
-    
-    let defaultExercises = [
-      { id: 1, name: 'Squat', weight: 100, unit: 'kg', reps: 5, tempo: '3-1-1-0', date: '2026-03-20' },
-      { id: 2, name: 'Bench Press', weight: 80, unit: 'kg', reps: 5, tempo: '2-1-1-0', date: '2026-03-21' },
-      { id: 3, name: 'Deadlift', weight: 140, unit: 'kg', reps: 3, tempo: '1-1-1-0', date: '2026-03-22' },
-      { id: 4, name: 'Shoulder Press', weight: 50, unit: 'kg', reps: 8, tempo: '2-0-1-0', date: '2026-03-22' },
-      { id: 5, name: 'Push Press', weight: 60, unit: 'kg', reps: 5, tempo: 'X-1-1-0', date: '2026-03-23' }
-    ];
-
-    let exercises = JSON.parse(localStorage.getItem('gym_exercises')) || defaultExercises;
-    
-    let availablePlates = {
-      red25kg: 4, blue20kg: 4, yellow15kg: 4, green10kg: 4, white5kg: 4,
-      orange2d5kg: 4, yellow1d5kg: 4, white1kg: 4,
-      blackpat25lb: 2, black15lb: 2, grey10lb: 2,
-    };
-    
-    const initialPlates = { ...availablePlates };
-    let openGroups = {};
-
-    function saveLogs() {
-      localStorage.setItem('gym_exercises', JSON.stringify(exercises));
-    }
-    
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(tab).classList.add('active');
-      event.target.classList.add('active');
+      { id: 'red25kg', name: 'Olympic Red', weight: 25, unit: 'kg', color: '#ef4444', height: 110, width: 18 },
+      { id: 'blue20kg', name: 'Olympic Blue', weight: 20, unit: 'kg', color: '#3b82f6', height: 105, width: 17 },
+      { id: 'yellow15kg', name: 'Olympic Yellow', weight: 15, unit: 'kg', color: '#eab308', height: 95, width: 16 },
+      { id: 'green10kg', name: 'Olympic Green', weight: 10, unit: 'kg', color: '#22c55e', height: 85, width: 14 },
+      { id: 'white5kg', name: 'Olympic White', weight: 5, unit: 'kg', color: '#f8fafc', textColor: '#0f172a', height: 70, width: 13 },
+      { id: 'orange2d5kg', name: 'Change Orange', weight: 2.5, unit: 'kg', color: '#f97316', height: 58, width: 12 },
+      { id: 'yellow1d5kg', name: 'Change Yellow', weight: 1.5, unit: 'kg', color: '#fde047', textColor: '#0f172a', height: 50, width: 11 },
+      { id: 'white1kg', name: 'Change White', weight: 1, unit: 'kg', color: '#e2e8f0', textColor: '#0f172a', height: 44, width: 10 },
       
-      if (tab === 'plates') updatePlateLoader();
+      { id: 'black45lb', name: 'Bumper 45lb', weight: 45, unit: 'lb', color: '#334155', height: 110, width: 18 },
+      { id: 'black35lb', name: 'Bumper 35lb', weight: 35, unit: 'lb', color: '#475569', height: 100, width: 17 },
+      { id: 'black25lb', name: 'Bumper 25lb', weight: 25, unit: 'lb', color: '#64748b', height: 90, width: 15 },
+      { id: 'grey10lb', name: 'Iron 10lb', weight: 10, unit: 'lb', color: '#94a3b8', textColor: '#0f172a', height: 75, width: 13 }
+    ];
+
+    const defaultInventory = {
+      red25kg: 16, blue20kg: 16, yellow15kg: 16, green10kg: 16, white5kg: 8,
+      orange2d5kg: 2, yellow1d5kg: 2, white1kg: 2,
+      black45lb: 16, black35lb: 16, black25lb: 16, grey10lb: 16
+    };
+
+    let availablePlates = { ...defaultInventory };
+    let loadedPlatesPerSide = []; 
+    let selectedBarWeightKg = 20;
+    
+    // Collapsed state tracking for exercise group accordions
+    let collapsedGroupsMap = {};
+
+    let exercises = [
+      { id: 1, name: 'Push Ups', weight: 0, unit: 'kg', sets: 3, reps: 30, tempo: '2-0-1-0', isBW: true, date: '2026-03-23' },
+      { id: 2, name: 'Dips', weight: 15, unit: 'kg', sets: 3, reps: 8, tempo: '2-0-1-0', isBW: true, date: '2026-03-22' },
+      { id: 3, name: 'Squat', weight: 140, unit: 'kg', sets: 3, reps: 5, tempo: '2-0-1-0', isBW: false, date: '2026-03-20' },
+      { id: 4, name: 'Bench Press', weight: 105, unit: 'kg', sets: 3, reps: 3, tempo: '2-0-1-0', isBW: false, date: '2026-03-23' },
+      { id: 5, name: 'Pull Ups', weight: 0, unit: 'kg', sets: 4, reps: 10, tempo: '2-0-1-0', isBW: true, date: '2026-03-21' }
+    ];
+
+    let oneRMManualOverrides = {};
+
+    window.onload = function() {
+      renderExercises();
+      render1RMCard();
+      updateSuggestionsSelect();
+      calculateFromTarget();
+
+      // Close autocomplete suggestions dropdown on outside click
+      document.addEventListener('click', function(e) {
+        const sugg = document.getElementById('exerciseSuggestions');
+        const input = document.getElementById('exerciseName');
+        if (sugg && !sugg.contains(e.target) && e.target !== input) {
+          sugg.classList.add('hidden');
+        }
+      });
+    };
+
+    /**
+     * Flexible Tempo Formatter & Normalizer
+     * Default Fallback strictly set to 2-0-1-0
+     */
+    function formatTempo(input) {
+      if (!input || typeof input !== 'string') return '2-0-1-0';
+      let str = input.trim().toUpperCase();
+      if (!str) return '2-0-1-0';
+
+      // Replaces spaces, commas, or multiple non-alphanumerics with single hyphens
+      str = str.replace(/[\s,]+/g, '-');
+
+      // If user entered 4 digits/X without any hyphens (e.g. "2010" or "31X1")
+      if (/^[0-9X]{4}$/.test(str)) {
+        str = str.split('').join('-');
+      }
+
+      // Consolidate extra hyphens
+      str = str.replace(/-+/g, '-');
+
+      return str;
+    }
+
+    function isBodyweightMovementName(name) {
+      if (!name) return false;
+      const lower = name.toLowerCase();
+      const bwKeywords = ['push up', 'pushup', 'dip', 'pull up', 'pullup', 'chin up', 'chinup', 'bodyweight', 'muscle up', 'body weight', 'bw'];
+      return bwKeywords.some(kw => lower.includes(kw));
+    }
+
+    function onBWCheckboxChange(context) {
+      const isLog = context === 'log';
+      const bwCheck = document.getElementById(isLog ? 'exerciseBW' : 'editBW');
+      const weightInput = document.getElementById(isLog ? 'exerciseWeight' : 'editWeight');
+
+      if (bwCheck && bwCheck.checked && weightInput) {
+        if (!weightInput.value || parseFloat(weightInput.value) === 0) {
+          weightInput.value = '0';
+        }
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastMessage');
+      if (toast) {
+        toast.textContent = msg;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 2500);
+      }
+    }
+
+    function switchTab(tab) {
+      const logTab = document.getElementById('logTab');
+      const platesTab = document.getElementById('platesTab');
+      const tabBtnLog = document.getElementById('tabBtnLog');
+      const tabBtnPlates = document.getElementById('tabBtnPlates');
+
       if (tab === 'log') {
+        logTab?.classList.remove('hidden');
+        platesTab?.classList.add('hidden');
+        if (tabBtnLog) tabBtnLog.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-500/20";
+        if (tabBtnPlates) tabBtnPlates.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-300 hover:text-white";
         renderExercises();
-        calculate1RM();
+        render1RMCard();
+        updateSuggestionsSelect();
+      } else {
+        platesTab?.classList.remove('hidden');
+        logTab?.classList.add('hidden');
+        if (tabBtnPlates) tabBtnPlates.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-500/20";
+        if (tabBtnLog) tabBtnLog.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all text-slate-300 hover:text-white";
+        updateUI();
       }
     }
 
-    function toggleCollapsible(id) {
-      const body = document.getElementById(id);
-      const isOpen = body.classList.toggle('open');
-      document.getElementById('rmCalcIcon').textContent = isOpen ? '▲' : '▼';
+    function parseTempoDuration(tempoStr) {
+      const formatted = formatTempo(tempoStr);
+      const parts = formatted.split('-');
+      if (parts.length !== 4) return 3.0; // default 2-0-1-0 = 3s total
+      let total = 0;
+      for (let p of parts) {
+        const val = p.trim().toUpperCase();
+        if (val === 'X') {
+          total += 0.5; // Explosive phase ~0.5s
+        } else {
+          const num = parseFloat(val);
+          if (isNaN(num)) return 3.0;
+          total += num;
+        }
+      }
+      return total;
     }
 
-    function toggleAllGroups(open) {
-      const groupBodies = document.querySelectorAll('.exercise-group-body');
-      groupBodies.forEach(b => {
-        if (open) b.classList.add('open');
-        else b.classList.remove('open');
+    function getUniquePreviousExercises() {
+      const names = new Set();
+      const defaultList = ["Push Ups", "Dips", "Pull Ups", "Bench Press", "Squat", "Deadlift", "Shoulder Press", "Push Press", "Barbell Row"];
+      defaultList.forEach(n => names.add(n));
+      exercises.forEach(e => {
+        if (e.name && e.name.trim()) {
+          names.add(e.name.trim());
+        }
       });
-      document.querySelectorAll('.group-toggle-icon').forEach(i => {
-        i.textContent = open ? '▲' : '▼';
-      });
+      return Array.from(names);
     }
 
-    function handleExerciseTyping() {
-      const input = document.getElementById('exerciseName').value.trim().toLowerCase();
-      const list = document.getElementById('suggestionsList');
-      if (!input) {
-        list.style.display = 'none';
-        return;
+    function handleExerciseInput() {
+      const input = document.getElementById('exerciseName');
+      const container = document.getElementById('exerciseSuggestions');
+      const bwCheckbox = document.getElementById('exerciseBW');
+
+      if (!input || !container) return;
+
+      const query = input.value.trim().toLowerCase();
+      
+      // Auto check BW if user types bodyweight exercise name
+      if (bwCheckbox && isBodyweightMovementName(query)) {
+        bwCheckbox.checked = true;
       }
 
-      const uniqueNames = [...new Set(exercises.map(e => e.name))];
-      const matches = uniqueNames.filter(name => name.toLowerCase().includes(input));
+      const uniqueList = getUniquePreviousExercises();
+      const matches = uniqueList.filter(name => name.toLowerCase().includes(query));
 
       if (matches.length === 0) {
-        list.style.display = 'none';
+        container.classList.add('hidden');
         return;
       }
 
-      list.innerHTML = matches.map(m => `
-        <div class="suggestion-item" onclick="selectSuggestion('${m}')">${m}</div>
+      container.innerHTML = matches.map(name => `
+        <div onclick="selectSuggestion('${name.replace(/'/g, "\\'")}')" 
+             class="px-3.5 py-2 hover:bg-indigo-600/30 text-xs text-slate-200 cursor-pointer font-medium transition flex items-center justify-between border-b border-slate-800/50 last:border-0">
+          <span>${name}</span>
+          <span class="text-[10px] text-slate-500">Select</span>
+        </div>
       `).join('');
-      list.style.display = 'block';
+
+      container.classList.remove('hidden');
     }
 
     function selectSuggestion(name) {
-      document.getElementById('exerciseName').value = name;
-      document.getElementById('suggestionsList').style.display = 'none';
+      const input = document.getElementById('exerciseName');
+      const sugg = document.getElementById('exerciseSuggestions');
+      const bwCheckbox = document.getElementById('exerciseBW');
+
+      if (input) input.value = name;
+      if (sugg) sugg.classList.add('hidden');
+
+      if (bwCheckbox && isBodyweightMovementName(name)) {
+        bwCheckbox.checked = true;
+      }
+
+      document.getElementById('exerciseWeight')?.focus();
     }
 
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.autocomplete-wrapper')) {
-        const list = document.getElementById('suggestionsList');
-        if (list) list.style.display = 'none';
+    function toggle1RMCard() {
+      const content = document.getElementById('oneRMContent');
+      const chevron = document.getElementById('oneRMChevron');
+      if (content && chevron) {
+        if (content.classList.contains('hidden')) {
+          content.classList.remove('hidden');
+          chevron.textContent = '▲ Hide';
+        } else {
+          content.classList.add('hidden');
+          chevron.textContent = '▼ Show';
+        }
       }
-    });
+    }
 
-    function addExercise() {
-      const name = document.getElementById('exerciseName').value.trim();
-      const weight = parseFloat(document.getElementById('exerciseWeight').value);
-      const unit = document.getElementById('exerciseUnit').value;
-      const reps = parseInt(document.getElementById('exerciseReps').value);
-      const tempo = document.getElementById('exerciseTempo').value.trim() || '-';
+    function toggleSuggestionsCard() {
+      const content = document.getElementById('suggestionsContent');
+      const chevron = document.getElementById('suggestionsChevron');
+      if (content && chevron) {
+        if (content.classList.contains('hidden')) {
+          content.classList.remove('hidden');
+          chevron.textContent = '▲ Hide';
+        } else {
+          content.classList.add('hidden');
+          chevron.textContent = '▼ Show';
+        }
+      }
+    }
+
+    function updateSuggestionsSelect() {
+      const select = document.getElementById('suggestionExerciseSelect');
+      if (!select) return;
+
+      const uniqueNames = Array.from(new Set(exercises.map(e => e.name.trim()))).filter(Boolean);
+      if (uniqueNames.length === 0) {
+        select.innerHTML = `<option value="">No exercises logged</option>`;
+        return;
+      }
+
+      const currentVal = select.value;
+      select.innerHTML = uniqueNames.map(name => `
+        <option value="${name.replace(/"/g, '&quot;')}" ${name === currentVal ? 'selected' : ''}>${name}</option>
+      `).join('');
+
+      if (!currentVal || !uniqueNames.includes(currentVal)) {
+        select.value = uniqueNames[0];
+      }
+      onSuggestionExerciseChange();
+    }
+
+    function onSuggestionExerciseChange() {
+      const select = document.getElementById('suggestionExerciseSelect');
+      if (!select) return;
+
+      const selectedName = select.value;
+      if (!selectedName) {
+        renderWeightSuggestions();
+        return;
+      }
+
+      let topRecord = null;
+      let top1RMKg = -1;
+
+      exercises.forEach(ex => {
+        if (ex.name.toLowerCase() === selectedName.toLowerCase()) {
+          const wKg = ex.unit === 'kg' ? ex.weight : ex.weight * 0.45359237;
+          const systemWeightKg = ex.isBW ? (70 + wKg) : wKg;
+          const e1rm = calculate1RM(systemWeightKg, ex.reps);
+          if (e1rm > top1RMKg) {
+            top1RMKg = e1rm;
+            topRecord = ex;
+          }
+        }
+      });
+
+      if (topRecord) {
+        const targetSetsInput = document.getElementById('suggestionTargetSets');
+        const targetRepsInput = document.getElementById('suggestionTargetReps');
+        const targetTempoInput = document.getElementById('suggestionTargetTempo');
+
+        if (targetSetsInput) targetSetsInput.value = topRecord.sets || 3;
+        if (targetRepsInput) targetRepsInput.value = topRecord.reps || 10;
+        if (targetTempoInput) targetTempoInput.value = formatTempo(topRecord.tempo || '2-0-1-0');
+      }
+
+      renderWeightSuggestions();
+    }
+
+    function renderWeightSuggestions() {
+      const select = document.getElementById('suggestionExerciseSelect');
+      const targetSetsInput = document.getElementById('suggestionTargetSets');
+      const targetRepsInput = document.getElementById('suggestionTargetReps');
+      const targetTempoInput = document.getElementById('suggestionTargetTempo');
+      const resultBox = document.getElementById('suggestionResultBox');
+
+      if (!select || !resultBox) return;
+
+      const selectedName = select.value;
+      const targetSets = parseInt(targetSetsInput?.value) || 3;
+      let targetReps = parseInt(targetRepsInput?.value) || 8;
+      const targetTempoStr = formatTempo(targetTempoInput?.value || '2-0-1-0');
+
+      if (!selectedName) {
+        resultBox.innerHTML = `<p class="text-xs text-slate-500 italic">No saved records found for suggestion.</p>`;
+        return;
+      }
+
+      let topRecord = null;
+      let top1RMKg = -1;
+
+      // Auto-select top most performance in record
+      exercises.forEach(ex => {
+        if (ex.name.toLowerCase() === selectedName.toLowerCase()) {
+          const wKg = ex.unit === 'kg' ? ex.weight : ex.weight * 0.45359237;
+          // Standard effective body weight system approximation (~70% BW active for pushups/dips/etc)
+          const systemWeightKg = ex.isBW ? (70 + wKg) : wKg;
+          const e1rm = calculate1RM(systemWeightKg, ex.reps);
+          if (e1rm > top1RMKg) {
+            top1RMKg = e1rm;
+            topRecord = ex;
+          }
+        }
+      });
+
+      if (!topRecord) {
+        resultBox.innerHTML = `<p class="text-xs text-slate-500 italic">No saved set found for ${selectedName}.</p>`;
+        return;
+      }
+
+      const baseSets = topRecord.sets || 3;
+      const baseReps = topRecord.reps;
+      const baseWeight = topRecord.weight;
+      const baseUnit = topRecord.unit;
+      const baseTempoStr = formatTempo(topRecord.tempo || '2-0-1-0');
+      const isBW = !!topRecord.isBW;
+
+      const baseAddedKg = baseUnit === 'kg' ? baseWeight : baseWeight * 0.45359237;
+      const assumedBWKg = 75; // Standard benchmark user weight
+      const systemBaseKg = isBW ? (assumedBWKg * 0.68 + baseAddedKg) : baseAddedKg;
       
-      if (name && !isNaN(weight) && !isNaN(reps)) {
-        const date = new Date().toISOString().split('T')[0];
-        exercises.unshift({ id: Date.now(), name, weight, unit, reps, tempo, date });
-        saveLogs();
-        document.getElementById('exerciseName').value = '';
-        document.getElementById('exerciseWeight').value = '';
-        document.getElementById('exerciseReps').value = '';
-        document.getElementById('exerciseTempo').value = '';
-        renderExercises();
-        calculate1RM();
+      const estimated1RMSystemKg = calculate1RM(systemBaseKg, baseReps);
+      const targetSystemKg = estimated1RMSystemKg / (1 + (targetReps / 30));
+
+      const targetRepDuration = parseTempoDuration(targetTempoStr);
+      const baseRepDuration = parseTempoDuration(baseTempoStr);
+      const tutSetSeconds = Math.round(targetReps * targetRepDuration * 10) / 10;
+
+      const alphaTempo = 1 - 0.025 * (targetRepDuration - baseRepDuration);
+      const adjustedTargetSystemKg = targetSystemKg * alphaTempo;
+
+      let suggestedAddedKg = 0;
+      let targetWeightDisplay = '';
+
+      if (isBW) {
+        suggestedAddedKg = adjustedTargetSystemKg - (assumedBWKg * 0.68);
+        if (suggestedAddedKg < 0) suggestedAddedKg = 0;
+
+        const valInUnit = baseUnit === 'kg' ? suggestedAddedKg : suggestedAddedKg * 2.20462;
+        const roundedAdded = Math.round(valInUnit * 2) / 2;
+
+        if (roundedAdded > 0) {
+          targetWeightDisplay = `BW + ${roundedAdded} ${baseUnit}`;
+        } else {
+          targetWeightDisplay = `BW`;
+        }
+      } else {
+        const valInUnit = baseUnit === 'kg' ? adjustedTargetSystemKg : adjustedTargetSystemKg * 2.20462;
+        const roundedTarget = Math.round(valInUnit * 2) / 2;
+        targetWeightDisplay = `${roundedTarget} ${baseUnit}`;
+      }
+
+      const tempoPctChange = Math.round((alphaTempo - 1) * 1000) / 10;
+      const tempoBadgeClass = tempoPctChange < 0 ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 
+                              (tempoPctChange > 0 ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-slate-800 text-slate-300 border-slate-700');
+
+      const repGoals = isBW && baseAddedKg === 0 ? [10, 15, 20, 25, 30] : [3, 5, 8, 10, 12];
+      const quickTableHtml = repGoals.map(r => {
+        const rawTargetSys = estimated1RMSystemKg / (1 + (r / 30));
+        const adjSys = rawTargetSys * alphaTempo;
+        const isCurrentTarget = r === targetReps;
+        
+        let displayLabel = '';
+        if (isBW) {
+          let addKg = adjSys - (assumedBWKg * 0.68);
+          if (addKg < 0) addKg = 0;
+          const addVal = baseUnit === 'kg' ? addKg : addKg * 2.20462;
+          const rAdded = Math.round(addVal * 2) / 2;
+          displayLabel = rAdded > 0 ? `BW+${rAdded}${baseUnit}` : 'BW';
+        } else {
+          const valForR = baseUnit === 'kg' ? adjSys : adjSys * 2.20462;
+          const roundedR = Math.round(valForR * 2) / 2;
+          displayLabel = `${roundedR}${baseUnit}`;
+        }
+
+        return `
+          <div onclick="selectTargetRepsGoal(${r})" class="cursor-pointer p-2 rounded-lg border text-center transition ${isCurrentTarget ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'}">
+            <div class="text-[10px] text-slate-400 font-medium">${targetSets} × ${r} reps</div>
+            <div class="text-xs font-extrabold mt-0.5">${displayLabel}</div>
+          </div>
+        `;
+      }).join('');
+
+      const baseWeightDisplay = isBW ? (baseWeight > 0 ? `BW + ${baseWeight} ${baseUnit}` : 'BW') : `${baseWeight} ${baseUnit}`;
+
+      resultBox.innerHTML = `
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <div class="text-xs text-slate-400 flex items-center gap-1">
+              <span>🏆 Top Recorded Performance:</span>
+            </div>
+            <div class="text-sm font-bold text-slate-200">
+              ${selectedName}: <span class="text-indigo-400">${baseSets} sets × ${baseReps} reps @ ${baseWeightDisplay}</span> 
+              <span class="text-xs text-slate-400 font-mono">(${baseTempoStr})</span>
+            </div>
+          </div>
+          <button onclick="loadSuggestedWeightToPlateCalculator(${Math.round(suggestedAddedKg * 10) / 10})" class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+            🏋️ Load ${Math.round(suggestedAddedKg * 10) / 10} kg in Plate Loader
+          </button>
+        </div>
+
+        <div class="bg-emerald-950/30 border border-emerald-500/30 rounded-lg p-3 text-center space-y-1">
+          <div class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Suggested Working Target</div>
+          <div class="text-xl sm:text-2xl font-black text-emerald-300 my-0.5">
+            ${targetSets} sets × ${targetReps} reps @ ${targetWeightDisplay}
+          </div>
+          <div class="flex items-center justify-center gap-2 flex-wrap text-[11px]">
+            <span class="text-indigo-300">TUT: <strong>${tutSetSeconds}s</strong> / set</span>
+            <span class="text-slate-500">•</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold border ${tempoBadgeClass}">
+              Tempo Adj: ${tempoPctChange > 0 ? '+' : ''}${tempoPctChange}%
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-[11px] font-semibold text-slate-400 mb-1.5">Quick Target Breakdown (${targetSets} Sets @ Tempo <span class="text-slate-300 font-mono">${targetTempoStr}</span>):</div>
+          <div class="grid grid-cols-5 gap-1.5">
+            ${quickTableHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function selectTargetRepsGoal(reps) {
+      const input = document.getElementById('suggestionTargetReps');
+      if (input) {
+        input.value = reps;
+        renderWeightSuggestions();
       }
     }
 
-    function renameExerciseGroup(oldName) {
-      const newName = prompt(`Rename all records for "${oldName}" to:`, oldName);
-      if (newName && newName.trim() !== '' && newName !== oldName) {
+    function loadSuggestedWeightToPlateCalculator(targetKg) {
+      const targetEl = document.getElementById('targetWeight');
+      const unitEl = document.getElementById('loaderUnit');
+      
+      if (unitEl) unitEl.value = 'kg';
+      if (targetEl) targetEl.value = targetKg;
+
+      switchTab('plates');
+      calculateFromTarget();
+      showToast(`Loaded ${targetKg} kg into Plate Loader`);
+    }
+
+    function calculate1RM(weight, reps) {
+      if (weight <= 0 || !reps || reps <= 0) return 0;
+      if (reps === 1) return weight;
+      return weight * (1 + (reps / 30));
+    }
+
+    function render1RMCard() {
+      const targetLifts = [
+        { key: 'Push Ups / Dips', matchNames: ['push up', 'pushup', 'dip', 'pull up', 'pullup', 'chin up'] },
+        { key: 'Shoulder Press / OHP', matchNames: ['shoulder press', 'overhead press', 'ohp', 'military press'] },
+        { key: 'Squat', matchNames: ['squat', 'back squat', 'front squat'] },
+        { key: 'Bench Press', matchNames: ['bench press', 'bench', 'flat bench'] },
+        { key: 'Deadlift', matchNames: ['deadlift', 'sumo deadlift', 'conventional deadlift'] }
+      ];
+
+      const grid = document.getElementById('oneRMGrid');
+      if (!grid) return;
+
+      grid.innerHTML = targetLifts.map(lift => {
+        let best1RMKg = 0;
+        let bestSetInfo = 'No sets logged';
+
         exercises.forEach(ex => {
-          if (ex.name.toLowerCase() === oldName.toLowerCase()) {
-            ex.name = newName.trim();
+          const nameLower = ex.name.toLowerCase();
+          const matches = lift.matchNames.some(m => nameLower.includes(m));
+          
+          if (matches) {
+            const wKg = ex.unit === 'kg' ? ex.weight : ex.weight * 0.45359237;
+            const e1rmKg = calculate1RM(wKg, ex.reps);
+            if (e1rmKg >= best1RMKg) {
+              best1RMKg = e1rmKg;
+              const wStr = ex.isBW ? (ex.weight > 0 ? `BW + ${ex.weight}${ex.unit}` : 'BW') : `${ex.weight}${ex.unit}`;
+              bestSetInfo = `${ex.sets || 3} × ${ex.reps} reps @ ${wStr}`;
+            }
           }
         });
-        saveLogs();
+
+        const finalKg = oneRMManualOverrides[lift.key] || best1RMKg;
+        const displayKg = (Math.round(finalKg * 10) / 10);
+        const displayLb = (Math.round(finalKg * 2.20462 * 10) / 10);
+
+        return `
+          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-slate-200">${lift.key}</div>
+              <div class="text-[10px] text-slate-400">Top set: ${bestSetInfo}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm font-extrabold text-emerald-400">
+                ${finalKg > 0 ? `${displayKg} kg` : '--'}
+              </div>
+              <div class="text-[10px] text-slate-400">
+                ${finalKg > 0 ? `${displayLb} lb` : 'Added 1RM'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addExercise() {
+      const nameInput = document.getElementById('exerciseName');
+      const weightInput = document.getElementById('exerciseWeight');
+      const unitInput = document.getElementById('exerciseUnit');
+      const setsInput = document.getElementById('exerciseSets');
+      const repsInput = document.getElementById('exerciseReps');
+      const tempoInput = document.getElementById('exerciseTempo');
+      const bwInput = document.getElementById('exerciseBW');
+
+      const name = nameInput?.value.trim();
+      const rawWeight = parseFloat(weightInput?.value);
+      const isBW = bwInput ? bwInput.checked : isBodyweightMovementName(name);
+      const weight = isNaN(rawWeight) ? 0 : rawWeight;
+      const unit = unitInput?.value || 'kg';
+      const sets = parseInt(setsInput?.value) || 3;
+      const reps = parseInt(repsInput?.value);
+      const tempo = formatTempo(tempoInput?.value || '2-0-1-0');
+
+      if (name && !isNaN(reps)) {
+        const today = new Date().toISOString().split('T')[0];
+        exercises.unshift({ 
+          id: Date.now(), 
+          name, 
+          weight, 
+          unit, 
+          sets,
+          reps, 
+          tempo, 
+          isBW,
+          date: today 
+        });
+
+        if (nameInput) nameInput.value = '';
+        if (weightInput) weightInput.value = '';
+        if (setsInput) setsInput.value = '3';
+        if (repsInput) repsInput.value = '';
+        if (tempoInput) tempoInput.value = '2-0-1-0';
+        if (bwInput) bwInput.checked = false;
+        document.getElementById('exerciseSuggestions')?.classList.add('hidden');
+
+        collapsedGroupsMap[name.toLowerCase()] = false;
+
         renderExercises();
-        calculate1RM();
+        render1RMCard();
+        updateSuggestionsSelect();
+        showToast(`Logged set record for ${name}`);
+      }
+    }
+
+    function deleteExercise(id) {
+      exercises = exercises.filter(e => e.id !== id);
+      renderExercises();
+      render1RMCard();
+      updateSuggestionsSelect();
+    }
+
+    function deleteGroup(exerciseName) {
+      exercises = exercises.filter(e => e.name.toLowerCase() !== exerciseName.toLowerCase());
+      renderExercises();
+      render1RMCard();
+      updateSuggestionsSelect();
+      showToast(`Deleted all records for ${exerciseName}`);
+    }
+
+    function openRenameGroupModal(oldDisplayName) {
+      const elKey = document.getElementById('renameOldGroupKey');
+      const elInput = document.getElementById('renameNewGroupInput');
+      if (elKey) elKey.value = oldDisplayName;
+      if (elInput) elInput.value = oldDisplayName;
+      document.getElementById('renameGroupModal')?.classList.remove('hidden');
+    }
+
+    function closeRenameGroupModal() {
+      document.getElementById('renameGroupModal')?.classList.add('hidden');
+    }
+
+    function saveGroupRename() {
+      const oldName = document.getElementById('renameOldGroupKey')?.value.trim();
+      const newName = document.getElementById('renameNewGroupInput')?.value.trim();
+
+      if (oldName && newName) {
+        exercises = exercises.map(ex => {
+          if (ex.name.toLowerCase() === oldName.toLowerCase()) {
+            return { ...ex, name: newName };
+          }
+          return ex;
+        });
+
+        closeRenameGroupModal();
+        renderExercises();
+        render1RMCard();
+        updateSuggestionsSelect();
+        showToast('Updated exercise group name');
       }
     }
 
     function openEditModal(id) {
-      const set = exercises.find(e => e.id === id);
-      if (!set) return;
-      document.getElementById('editSetId').value = set.id;
-      document.getElementById('editSetExercise').value = set.name;
-      document.getElementById('editSetWeight').value = set.weight;
-      document.getElementById('editSetUnit').value = set.unit;
-      document.getElementById('editSetReps').value = set.reps;
-      document.getElementById('editSetTempo').value = set.tempo || '';
-      document.getElementById('editModal').classList.add('active');
+      const record = exercises.find(e => e.id === id);
+      if (!record) return;
+
+      document.getElementById('editId').value = record.id;
+      document.getElementById('editName').value = record.name;
+      document.getElementById('editWeight').value = record.weight;
+      document.getElementById('editUnit').value = record.unit;
+      document.getElementById('editSets').value = record.sets || 3;
+      document.getElementById('editReps').value = record.reps;
+      document.getElementById('editTempo').value = formatTempo(record.tempo || '2-0-1-0');
+      document.getElementById('editBW').checked = !!record.isBW;
+
+      document.getElementById('editModal')?.classList.remove('hidden');
     }
 
     function closeEditModal() {
-      document.getElementById('editModal').classList.remove('active');
+      document.getElementById('editModal')?.classList.add('hidden');
     }
 
-    function saveEditedSet() {
-      const id = parseInt(document.getElementById('editSetId').value);
-      const set = exercises.find(e => e.id === id);
-      if (set) {
-        set.name = document.getElementById('editSetExercise').value.trim();
-        set.weight = parseFloat(document.getElementById('editSetWeight').value) || 0;
-        set.unit = document.getElementById('editSetUnit').value;
-        set.reps = parseInt(document.getElementById('editSetReps').value) || 0;
-        set.tempo = document.getElementById('editSetTempo').value.trim() || '-';
-        saveLogs();
-        closeEditModal();
-        renderExercises();
-        calculate1RM();
-      }
-    }
+    function saveEditModal() {
+      const id = parseInt(document.getElementById('editId')?.value);
+      const name = document.getElementById('editName')?.value.trim();
+      const rawWeight = parseFloat(document.getElementById('editWeight')?.value);
+      const isBW = document.getElementById('editBW')?.checked || false;
+      const weight = isNaN(rawWeight) ? 0 : rawWeight;
+      const unit = document.getElementById('editUnit')?.value;
+      const sets = parseInt(document.getElementById('editSets')?.value) || 3;
+      const reps = parseInt(document.getElementById('editReps')?.value);
+      const tempo = formatTempo(document.getElementById('editTempo')?.value || '2-0-1-0');
 
-    function deleteSet(id) {
-      if (confirm('Delete this set record?')) {
-        exercises = exercises.filter(e => e.id !== id);
-        saveLogs();
-        renderExercises();
-        calculate1RM();
-      }
-    }
-
-    function calculate1RM() {
-      const targetLifts = ['Shoulder Press', 'Push Press', 'Squat', 'Bench Press', 'Deadlift'];
-      const grid = document.getElementById('rmGrid');
-      
-      grid.innerHTML = targetLifts.map(lift => {
-        const matching = exercises.filter(e => e.name.toLowerCase() === lift.toLowerCase());
-        let max1RM = 0;
-        let unit = 'kg';
-
-        matching.forEach(ex => {
-          const wInKg = ex.unit === 'lb' ? ex.weight / 2.20462 : ex.weight;
-          const epley = wInKg * (1 + ex.reps / 30);
-          if (epley > max1RM) {
-            max1RM = epley;
-            unit = 'kg';
+      if (id && name && !isNaN(reps)) {
+        exercises = exercises.map(ex => {
+          if (ex.id === id) {
+            return { ...ex, name, weight, unit, sets, reps, tempo, isBW };
           }
+          return ex;
         });
 
-        const display1RM = max1RM > 0 ? `${Math.round(max1RM)} kg / ${Math.round(max1RM * 2.20462)} lb` : 'No logs';
+        closeEditModal();
+        renderExercises();
+        render1RMCard();
+        updateSuggestionsSelect();
+      }
+    }
 
-        return `
-          <div class="rm-card">
-            <div class="rm-card-title">${lift}</div>
-            <div class="rm-card-val">${display1RM}</div>
-          </div>
-        `;
-      }).join('');
+    function toggleGroupCollapse(groupKey) {
+      collapsedGroupsMap[groupKey] = !collapsedGroupsMap[groupKey];
+      renderExercises();
+    }
+
+    function toggleAllGroups(expand) {
+      const searchInput = document.getElementById('searchLog')?.value || '';
+      const searchQuery = searchInput.toLowerCase().trim();
+      
+      exercises.forEach(ex => {
+        const normKey = ex.name.trim().toLowerCase();
+        if (!searchQuery || normKey.includes(searchQuery)) {
+          collapsedGroupsMap[normKey] = !expand;
+        }
+      });
+      renderExercises();
     }
 
     function renderExercises() {
-      const searchTerm = document.getElementById('searchLog').value.toLowerCase().trim();
       const list = document.getElementById('exercisesList');
+      if (!list) return;
 
-      const filtered = exercises.filter(e => e.name.toLowerCase().includes(searchTerm));
+      const searchQuery = (document.getElementById('searchLog')?.value || '').toLowerCase().trim();
+      const filtered = exercises.filter(ex => ex.name.toLowerCase().includes(searchQuery));
 
-      const groups = {};
-      filtered.forEach(ex => {
-        const normName = ex.name.trim();
-        if (!groups[normName]) groups[normName] = [];
-        groups[normName].push(ex);
-      });
-
-      if (Object.keys(groups).length === 0) {
-        list.innerHTML = `<div style="text-align: center; color: #64748b; padding: 20px;">No workout logs found.</div>`;
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="text-center text-xs text-slate-500 py-8 bg-slate-900/40 rounded-xl border border-slate-800">
+          ${searchQuery ? 'No matching exercise records found.' : 'No lifting sets logged yet.'}
+        </div>`;
         return;
       }
 
-      list.innerHTML = Object.keys(groups).map((groupName, idx) => {
-        const sets = groups[groupName];
-        const topSet = [...sets].sort((a,b) => {
-          const aKg = a.unit === 'lb' ? a.weight / 2.20462 : a.weight;
-          const bKg = b.unit === 'lb' ? b.weight / 2.20462 : b.weight;
-          return bKg - aKg;
-        })[0];
+      const groups = {};
+      filtered.forEach(ex => {
+        const key = ex.name.trim();
+        const normKey = key.toLowerCase();
+        if (!groups[normKey]) {
+          groups[normKey] = { displayName: key, items: [] };
+        }
+        groups[normKey].items.push(ex);
+      });
+
+      list.innerHTML = Object.keys(groups).map((groupKey) => {
+        const group = groups[groupKey];
+        const count = group.items.length;
+        const isCollapsed = !!collapsedGroupsMap[groupKey];
+        const maxSet = group.items.reduce((max, item) => {
+          const itemKg = item.unit === 'kg' ? item.weight : item.weight * 0.45359237;
+          const maxKg = max.unit === 'kg' ? max.weight : max.weight * 0.45359237;
+          return itemKg > maxKg ? item : max;
+        }, group.items[0]);
+
+        const maxSetKg = maxSet.unit === 'kg' ? maxSet.weight : Math.round(maxSet.weight * 0.45359237 * 10) / 10;
+        const maxSetLb = maxSet.unit === 'lb' ? maxSet.weight : Math.round(maxSet.weight * 2.20462 * 10) / 10;
+
+        const maxSetLabel = maxSet.isBW ? (maxSet.weight > 0 ? `BW + ${maxSetKg} kg` : 'BW (Bodyweight)') : `${maxSetKg} kg (${maxSetLb} lb)`;
 
         return `
-          <div class="exercise-group">
-            <div class="exercise-group-header" onclick="toggleGroupBody('grp_${idx}')">
-              <div class="exercise-group-title">
-                <span>${groupName}</span>
-                <span style="font-size: 11px; color: #38bdf8; font-weight: 400;">(${sets.length} sets, Top: ${topSet.weight}${topSet.unit})</span>
-              </div>
-              <div style="display: flex; gap: 6px; align-items: center;">
-                <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 11px;" onclick="event.stopPropagation(); renameExerciseGroup('${groupName.replace(/'/g, "\\'")}')">✏️</button>
-                <span id="icon_grp_${idx}" class="group-toggle-icon" style="color:#94a3b8; font-size: 12px;">▼</span>
-              </div>
-            </div>
-            <div id="grp_${idx}" class="exercise-group-body">
-              ${sets.map(s => `
-                <div class="set-row">
-                  <div class="set-details">
-                    <span style="font-weight: 700; color: #f8fafc;">${s.weight} ${s.unit} × ${s.reps}</span>
-                    <span class="set-badge">Tempo: ${s.tempo}</span>
-                    <span style="font-size: 10px; color: #64748b;">${s.date}</span>
-                  </div>
-                  <div style="display: flex; gap: 4px;">
-                    <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 11px;" onclick="openEditModal(${s.id})">Edit</button>
-                    <button class="btn btn-danger" onclick="deleteSet(${s.id})">✕</button>
+          <div class="glass-card rounded-xl border border-slate-800 overflow-hidden shadow-md">
+            <div class="p-3 bg-slate-900/90 flex items-center justify-between border-b border-slate-800/80">
+              <div onclick="toggleGroupCollapse('${groupKey}')" class="flex items-center gap-2.5 cursor-pointer flex-1">
+                <span class="text-xs text-indigo-400 font-bold transition-transform">
+                  ${isCollapsed ? '▶' : '▼'}
+                </span>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-extrabold text-white">${group.displayName}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full border border-indigo-500/30">
+                      ${count} ${count === 1 ? 'record' : 'records'}
+                    </span>
                   </div>
                 </div>
-              `).join('')}
+              </div>
+              
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 hidden sm:inline-block">
+                  Top: ${maxSetLabel}
+                </span>
+                <button onclick="openRenameGroupModal('${group.displayName.replace(/'/g, "\\'")}')" class="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition" title="Rename Exercise Group">
+                  ✏️ Rename
+                </button>
+                <button onclick="deleteGroup('${group.displayName.replace(/'/g, "\\'")}')" class="text-xs text-slate-500 hover:text-rose-400 p-1" title="Delete Entire Group">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <div class="${isCollapsed ? 'hidden' : ''} divide-y divide-slate-800/60 bg-slate-950/40">
+              ${group.items.map(item => {
+                const itemKg = item.unit === 'kg' ? item.weight : Math.round(item.weight * 0.45359237 * 10) / 10;
+                const itemLb = item.unit === 'lb' ? item.weight : Math.round(item.weight * 2.20462 * 10) / 10;
+                const setVal = item.sets || 3;
+                const formattedTempo = formatTempo(item.tempo);
+
+                let weightLabelHtml = '';
+                if (item.isBW) {
+                  weightLabelHtml = item.weight > 0 ? 
+                    `<span class="text-sm font-bold text-emerald-400">BW + ${itemKg} kg <span class="text-xs font-normal text-slate-400">(${itemLb} lb)</span></span>` : 
+                    `<span class="text-sm font-bold text-emerald-400">BW <span class="text-xs font-normal text-slate-400">(Bodyweight)</span></span>`;
+                } else {
+                  weightLabelHtml = `<span class="text-sm font-bold text-emerald-400">${itemKg} kg <span class="text-xs font-normal text-slate-400">(${itemLb} lb)</span></span>`;
+                }
+
+                return `
+                <div class="p-3 flex items-center justify-between hover:bg-slate-800/40 transition">
+                  <div class="space-y-0.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      ${weightLabelHtml}
+                      <span class="text-xs text-slate-300 font-medium">× ${setVal}${setVal === 1 ? 'set' : 'sets'} × ${item.reps} reps</span>${formattedTempo ? `<span class="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded font-mono">⏱ ${formattedTempo}</span>` : ''}
+                    </div>
+                    <div class="text-[10px] text-slate-500">${item.date || 'Recent set'}</div>
+                  </div>
+
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="openEditModal(${item.id})" class="text-xs font-semibold px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded transition border border-slate-700">
+                      Edit
+                    </button>
+                    <button onclick="deleteExercise(${item.id})" class="text-xs font-semibold px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              `;
+              }).join('')}
             </div>
           </div>
         `;
       }).join('');
     }
 
-    function toggleGroupBody(id) {
-      const body = document.getElementById(id);
-      const icon = document.getElementById('icon_' + id);
-      const isOpen = body.classList.toggle('open');
-      if (icon) icon.textContent = isOpen ? '▲' : '▼';
+    function getPlateWeightInKg(plate) {
+      return plate.unit === 'kg' ? plate.weight : plate.weight * 0.45359237;
     }
 
-    // Plate Loader Logic
-    function updateBarWeight() {
-      selectedBarWeight = parseFloat(document.getElementById('barWeight').value) || 20;
-      updateTargetDisplay();
-    }
-
-    function calculatePlates() {
-      const target = parseFloat(document.getElementById('targetWeight').value) || 0;
-      const unit = document.getElementById('loaderUnit').value;
-      const barbellWeight = unit === 'kg' ? selectedBarWeight : (selectedBarWeight === 20 ? 45 : 33);
-      
-      let weightPerSide = Math.max(0, (target - barbellWeight) / 2);
-      
-      if (weightPerSide === 0) {
-        return { perSide: [], total: barbellWeight };
-      }
-
-      const relevant = plateDefinitions.filter(p => p.unit === unit);
-      const sorted = [...relevant].sort((a, b) => b.weight - a.weight);
-      
-      let perSide = [];
-      let remaining = Math.round(weightPerSide * 100) / 100;
-      
-      for (let i = 0; i < sorted.length; i++) {
-        const plate = sorted[i];
-        const availablePairs = Math.floor((availablePlates[plate.id] || 0) / 2);
-        
-        const needed = Math.min(Math.floor((remaining + 0.001) / plate.weight), availablePairs);
-        
-        for (let j = 0; j < needed; j++) {
-          perSide.push(plate);
-          remaining -= plate.weight;
-          remaining = Math.round(remaining * 100) / 100;
+    function sortLoadedPlates() {
+      loadedPlatesPerSide.sort((a, b) => {
+        if (a.unit !== b.unit) {
+          return a.unit === 'kg' ? -1 : 1;
         }
-        
-        if (remaining <= 0.001) break;
+        return b.weight - a.weight;
+      });
+    }
+
+    function calculateTotalWeightKg() {
+      const platesSumKg = loadedPlatesPerSide.reduce((sum, p) => {
+        return sum + (getPlateWeightInKg(p) * 2);
+      }, 0);
+      return selectedBarWeightKg + platesSumKg;
+    }
+
+    function onBarWeightSelectChange() {
+      const barSelect = document.getElementById('barWeight');
+      const customContainer = document.getElementById('customBarContainer');
+      
+      if (!barSelect) return;
+
+      if (barSelect.value === 'custom') {
+        customContainer?.classList.remove('hidden');
+        const customVal = parseFloat(document.getElementById('customBarWeight')?.value) || 0;
+        selectedBarWeightKg = customVal;
+      } else {
+        customContainer?.classList.add('hidden');
+        selectedBarWeightKg = parseFloat(barSelect.value) || 20;
       }
 
-      const total = perSide.reduce((sum, p) => sum + p.weight, 0) * 2 + barbellWeight;
-      return { perSide, total };
+      calculateFromTarget();
     }
 
-    function createBarbellSVG(perSidePlates) {
-      // Plate sorting: Inner collar to Outermost sleeve
-      const innerToOuter = [...perSidePlates].sort((a,b) => b.weight - a.weight);
-      const leftSleevePlates = [...innerToOuter].reverse();
-      const rightSleevePlates = innerToOuter;
-
-      const collarWidth = 12;
-      const barHeight = 16;
-      const centerWidth = 90;
-      
-      const leftSideWidth = leftSleevePlates.reduce((acc, p) => acc + (p.width || 14) + 2, 0);
-      const rightSideWidth = rightSleevePlates.reduce((acc, p) => acc + (p.width || 14) + 2, 0);
-
-      const endProtrusion = 30;
-      const totalSVGWidth = Math.max(480, centerWidth + (collarWidth * 2) + leftSideWidth + rightSideWidth + (endProtrusion * 2) + 40);
-      const svgHeight = 160;
-      const centerY = svgHeight / 2;
-
-      const leftCollarX = (totalSVGWidth / 2) - (centerWidth / 2) - collarWidth;
-      const rightCollarX = (totalSVGWidth / 2) + (centerWidth / 2);
-
-      let svg = `<svg width="100%" height="${svgHeight}" viewBox="0 0 ${totalSVGWidth}${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
-      
-      // Bar background
-      const barStartX = leftCollarX - leftSideWidth - endProtrusion;
-      const barEndX = rightCollarX + collarWidth + rightSideWidth + endProtrusion;
-
-      svg += `<rect x="${barStartX}" y="${centerY - (barHeight/2)}" width="${barEndX - barStartX}" height="${barHeight}" rx="4" fill="url(#barGrad)" stroke="#334155" stroke-width="1"/>`;
-      
-      // Collars
-      svg += `<rect x="${leftCollarX}" y="${centerY - 24}" width="${collarWidth}" height="48" rx="2" fill="#475569" stroke="#1e293b"/>`;
-      svg += `<rect x="${rightCollarX}" y="${centerY - 24}" width="${collarWidth}" height="48" rx="2" fill="#475569" stroke="#1e293b"/>`;
-      
-      // Center Barbell Text
-      svg += `<text x="${totalSVGWidth/2}" y="${centerY + 4}" fill="#94a3b8" font-size="11" font-weight="800" text-anchor="middle" letter-spacing="1">BAR</text>`;
-
-      // Render Left Sleeve Plates (Outer to Inner)
-      let currLeftX = leftCollarX - 2;
-      leftSleevePlates.forEach((p, idx) => {
-        currLeftX -= (p.width || 14);
-        svg += renderPlateGraphic(p, currLeftX, centerY, true, idx);
-        currLeftX -= 2;
-      });
-
-      // Render Right Sleeve Plates (Inner to Outer)
-      let currRightX = rightCollarX + collarWidth + 2;
-      rightSleevePlates.forEach((p, idx) => {
-        svg += renderPlateGraphic(p, currRightX, centerY, false, idx);
-        currRightX += (p.width || 14) + 2;
-      });
-
-      // SVG Gradients
-      svg += `
-        <defs>
-          <linearGradient id="barGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#64748b" />
-            <stop offset="50%" style="stop-color:#cbd5e1" />
-            <stop offset="100%" style="stop-color:#334155" />
-          </linearGradient>
-        </defs>
-      </svg>`;
-
-      return svg;
+    function onCustomBarInput() {
+      const customVal = parseFloat(document.getElementById('customBarWeight')?.value) || 0;
+      selectedBarWeightKg = customVal;
+      calculateFromTarget();
     }
 
-    function renderPlateGraphic(plate, x, centerY, isLeft, index) {
-      const pHeight = plate.height || 80;
-      const pWidth = plate.width || 14;
-      const y = centerY - (pHeight / 2);
-      
-      // Stagger labels for thin change plates
-      const isThin = plate.weight <= 5;
-      const offsetMultiplier = isThin ? (index % 2 === 0 ? 1 : 2) : 1;
-      const labelY = y - (8 * offsetMultiplier) - 4;
+    function calculateFromTarget() {
+      const targetEl = document.getElementById('targetWeight');
+      const unitEl = document.getElementById('loaderUnit');
 
-      let g = `<g class="interactive-plate-wrapper" onclick="removePlateFromBar('${plate.id}')">`;
+      const targetInput = targetEl ? (parseFloat(targetEl.value) || 0) : 0;
+      const unit = unitEl ? unitEl.value : 'kg';
       
-      // Label line connector if staggered high
-      if (isThin && offsetMultiplier > 1) {
-        g += `<line x1="${x + pWidth/2}" y1="${labelY + 2}" x2="${x + pWidth/2}" y2="${y}" stroke="#94a3b8" stroke-width="1"/>`;
+      const targetKg = unit === 'kg' ? targetInput : targetInput * 0.45359237;
+      let remainingSideKg = Math.max(0, (targetKg - selectedBarWeightKg) / 2);
+
+      // Return any current loaded plates back to inventory stock first
+      loadedPlatesPerSide.forEach(p => {
+        availablePlates[p.id] = (availablePlates[p.id] || 0) + 2;
+      });
+
+      const sortedAvailable = [...plateDefinitions].sort((a, b) => {
+        if (a.unit !== b.unit) {
+          return a.unit === 'kg' ? -1 : 1;
+        }
+        return b.weight - a.weight;
+      });
+
+      loadedPlatesPerSide = [];
+
+      for (let plate of sortedAvailable) {
+        const pKg = getPlateWeightInKg(plate);
+        while (remainingSideKg >= pKg - 0.001 && availablePlates[plate.id] >= 2) {
+          loadedPlatesPerSide.push(plate);
+          availablePlates[plate.id] -= 2;
+          remainingSideKg -= pKg;
+        }
       }
 
-      // Weight Label Above
-      g += `<text x="${x + pWidth/2}" y="${labelY}" fill="#38bdf8" font-size="11" font-weight="800" text-anchor="middle" stroke="#0f172a" stroke-width="2" paint-order="stroke fill">${plate.weight}</text>`;
-
-      // Plate Body
-      g += `<rect x="${x}" y="${y}" width="${pWidth}" height="${pHeight}" rx="3" fill="${plate.color}" stroke="#0f172a" stroke-width="1"/>`;
-      g += `</g>`;
-      return g;
+      sortLoadedPlates();
+      updateUI(false);
     }
 
-    function updatePlateLoader() {
-      const result = calculatePlates();
-      const display = document.getElementById('barbellDisplay');
-      const unit = document.getElementById('loaderUnit').value;
-      const barbellWeight = unit === 'kg' ? selectedBarWeight : (selectedBarWeight === 20 ? 45 : 33);
+    function syncTargetFromLoaded() {
+      sortLoadedPlates();
+      const totalKg = calculateTotalWeightKg();
+      const unitEl = document.getElementById('loaderUnit');
+      const unit = unitEl ? unitEl.value : 'kg';
+      const totalDisplay = unit === 'kg' ? totalKg : totalKg * 2.20462;
       
-      const svgGraphic = createBarbellSVG(result.perSide);
-      const totalKg = Math.round(result.total * 10) / 10;
-      const totalLb = Math.round(totalKg * 2.20462 * 10) / 10;
-      
-      display.innerHTML = `
-        <div class="barbell-container">
-          <div class="barbell-label">Barbell Loading (Tap plate on bar to unload)</div>
-          <div class="svg-barbell-wrapper">${svgGraphic}</div>
-          <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Bar Base: ${barbellWeight}${unit}</div>
-          <div style="font-size: 16px; font-weight: 700; color: #38bdf8; margin-top: 2px;">${totalKg} kg / ${totalLb} lb</div>
-        </div>
-      `;
-      
-      renderPlatesInventory();
+      const targetInput = document.getElementById('targetWeight');
+      if (targetInput) {
+        targetInput.value = (Math.round(totalDisplay * 10) / 10);
+      }
+      updateUI(false);
     }
 
-    function renderPlatesInventory() {
-      const grid = document.getElementById('platesGrid');
-      
-      grid.innerHTML = plateDefinitions.map(plate => `
-        <div class="plate-card">
-          <div style="margin: 0 auto 4px; cursor: pointer;" onclick="addPlateToBar('${plate.id}')">
-            <div style="font-weight: 800; color: #38bdf8; font-size: 12px;">${plate.weight}${plate.unit}</div>
-            <div style="width: 24px; height: ${plate.height * 0.45}px; background:${plate.color}; border-radius: 3px; margin: 4px auto; border: 1px solid #334155;"></div>
-          </div>
-          <div class="plate-card-name">${plate.name}</div>
-          <div class="plate-card-count">Qty: ${availablePlates[plate.id] || 0}</div>
-          <div class="plate-card-buttons">
-            <button class="plate-btn plate-btn-remove" onclick="decreaseAvailablePlate(event, '${plate.id}')" title="Decrease available count">−</button>
-            <button class="plate-btn plate-btn-add" onclick="increaseAvailablePlate(event, '${plate.id}')" title="Increase available count">+</button>
-          </div>
-        </div>
-      `).join('');
+    function onTargetInputChanged() {
+      calculateFromTarget();
     }
 
-    function resetPlates() {
-      availablePlates = { ...initialPlates };
-      updatePlateLoader();
+    function onUnitChanged() {
+      syncTargetFromLoaded();
     }
 
-    function updateTargetDisplay() {
-      const target = parseFloat(document.getElementById('targetWeight').value) || 0;
-      const unit = document.getElementById('loaderUnit').value;
-      
-      let targetKg = unit === 'kg' ? target : target / 2.20462;
-      let targetLb = unit === 'lb' ? target : target * 2.20462;
-      
-      targetKg = Math.round(targetKg * 10) / 10;
-      targetLb = Math.round(targetLb * 10) / 10;
-      
-      document.getElementById('targetDisplay').textContent = `= ${targetKg} kg / ${targetLb} lb`;
-      updatePlateLoader();
+    function clearBarbell() {
+      loadedPlatesPerSide.forEach(p => {
+        availablePlates[p.id] = (availablePlates[p.id] || 0) + 2;
+      });
+      loadedPlatesPerSide = [];
+      syncTargetFromLoaded();
+      showToast('Cleared all plates from barbell and returned stock');
     }
 
-    function increaseAvailablePlate(e, plateId) {
-      if (e && e.stopPropagation) e.stopPropagation();
+    function incrementInventory(e, plateId) {
+      if (e) e.stopPropagation();
       availablePlates[plateId] = (availablePlates[plateId] || 0) + 1;
-      renderPlatesInventory();
+      updateUI(false);
     }
 
-    function decreaseAvailablePlate(e, plateId) {
-      if (e && e.stopPropagation) e.stopPropagation();
+    function decrementInventory(e, plateId) {
+      if (e) e.stopPropagation();
       if (availablePlates[plateId] > 0) {
         availablePlates[plateId]--;
-        updatePlateLoader();
+        updateUI(false);
       }
     }
 
-    function addPlateToBar(plateId) {
-      if ((availablePlates[plateId] || 0) >= 2) {
+    function addPlateGraphicClick(plateId) {
+      if (availablePlates[plateId] >= 2) {
         availablePlates[plateId] -= 2;
-        const plate = plateDefinitions.find(p => p.id === plateId);
-        
-        const unit = document.getElementById('loaderUnit').value;
-        const currentTarget = parseFloat(document.getElementById('targetWeight').value) || 0;
-        
-        let plateWeightInUnit = plate.weight;
-        if (unit !== plate.unit) {
-          plateWeightInUnit = unit === 'kg' ? plate.weight * 0.453592 : plate.weight * 2.20462;
+        const plateObj = plateDefinitions.find(p => p.id === plateId);
+        if (plateObj) {
+          loadedPlatesPerSide.push(plateObj);
+          syncTargetFromLoaded();
         }
-        
-        const newTarget = currentTarget + (plateWeightInUnit * 2);
-        document.getElementById('targetWeight').value = Math.round(newTarget * 10) / 10;
-        updateTargetDisplay();
       } else {
-        alert("At least 2 plates (1 pair) required in available inventory to load onto bar!");
+        showToast('Not enough available inventory plates (requires pair)');
       }
     }
 
-    function removePlateFromBar(plateId) {
-      const plate = plateDefinitions.find(p => p.id === plateId);
-      if (plate) {
-        availablePlates[plateId] = (availablePlates[plateId] || 0) + 2;
-        
-        const unit = document.getElementById('loaderUnit').value;
-        const currentTarget = parseFloat(document.getElementById('targetWeight').value) || 0;
-        
-        let plateWeightInUnit = plate.weight;
-        if (unit !== plate.unit) {
-          plateWeightInUnit = unit === 'kg' ? plate.weight * 0.453592 : plate.weight * 2.20462;
-        }
-        
-        const newTarget = Math.max(0, currentTarget - (plateWeightInUnit * 2));
-        document.getElementById('targetWeight').value = Math.round(newTarget * 10) / 10;
-        updateTargetDisplay();
+    function unloadPlateFromBar(sortedIndex) {
+      if (sortedIndex >= 0 && sortedIndex < loadedPlatesPerSide.length) {
+        const removedPlate = loadedPlatesPerSide.splice(sortedIndex, 1)[0];
+        availablePlates[removedPlate.id] = (availablePlates[removedPlate.id] || 0) + 2;
+        syncTargetFromLoaded();
       }
     }
 
-    // PWA Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        const swCode = `
-          const CACHE_NAME = 'gym-tracker-v1';
-          self.addEventListener('install', e => {
-            e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./'])));
-          });
-          self.addEventListener('fetch', e => {
-            e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
-          });
+    function resetPlatesInventory() {
+      availablePlates = { ...defaultInventory };
+      calculateFromTarget();
+      showToast('Inventory reset to default stock');
+    }
+
+    function renderBarbellSVG() {
+      const container = document.getElementById('barbellVisualizer');
+      if (!container) return;
+
+      const svgWidth = 800;
+      const svgHeight = 210;
+      const centerY = 105;
+
+      const barShaftWidth = 360;
+      const barShaftX = (svgWidth - barShaftWidth) / 2;
+      const barHeight = 12;
+
+      const sleeveWidth = 180;
+      const leftSleeveX = barShaftX - sleeveWidth;
+      const rightSleeveX = barShaftX + barShaftWidth;
+
+      const collarWidth = 14;
+      const collarHeight = 50;
+
+      const baseTotalPlatesWidth = loadedPlatesPerSide.reduce((sum, p) => sum + (p.width * 1.5), 0);
+      const maxAvailableSleeveWidth = sleeveWidth - 15;
+      const scaleFactor = baseTotalPlatesWidth > maxAvailableSleeveWidth ? (maxAvailableSleeveWidth / baseTotalPlatesWidth) : 1;
+
+      let leftPlateX = barShaftX - collarWidth;
+      let rightPlateX = barShaftX + barShaftWidth + collarWidth;
+
+      let leftPlatesMarkup = '';
+      let rightPlatesMarkup = '';
+
+      loadedPlatesPerSide.forEach((plate, index) => {
+        const pWidth = Math.max(10, plate.width * 1.5 * scaleFactor);
+        const pHeight = plate.height * 1.3;
+        const pY = centerY - (pHeight / 2);
+        const textColor = plate.textColor || '#ffffff';
+
+        // Check if plates are stacked close together
+        const isStackedClose = pWidth < 18;
+        const showText = !isStackedClose && pHeight > 45 && pWidth >= 11;
+        const fontSize = Math.min(10, Math.max(7, pWidth * 0.65));
+
+        // LEFT SIDE
+        leftPlateX -= pWidth;
+        const leftCx = leftPlateX + pWidth / 2;
+        const leftCalloutY = pY - 10 - ((index % 2) * 12);
+
+        leftPlatesMarkup += `
+          <g class="cursor-pointer plate-hover" onclick="unloadPlateFromBar(${index})">
+            <title>Click to unload pair: ${plate.weight} ${plate.unit}</title>
+            <rect x="${leftPlateX}" y="${pY}" width="${Math.max(1, pWidth - 1)}" height="${pHeight}" rx="3" fill="${plate.color}" stroke="#0f172a" stroke-width="1.5" />
+            <rect x="${leftPlateX + 2}" y="${pY + 3}" width="${Math.max(1, pWidth - 5)}" height="${pHeight - 6}" rx="2" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+            
+            ${isStackedClose ? `
+              <!-- Center dotted line down plate face -->
+              <line x1="${leftCx}" y1="${pY}" x2="${leftCx}" y2="${pY + pHeight}" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-dasharray="2 2" />
+              <!-- Extended dotted callout line to top badge -->
+              <line x1="${leftCx}" y1="${pY}" x2="${leftCx}" y2="${leftCalloutY}" stroke="${plate.color}" stroke-width="1.5" stroke-dasharray="2 2" />
+              <rect x="${leftCx - 10}" y="${leftCalloutY - 10}" width="20" height="10" rx="2" fill="#0f172a" stroke="${plate.color}" stroke-width="1" />
+              <text x="${leftCx}" y="${leftCalloutY - 2}" fill="#ffffff" font-size="8" font-weight="800" font-family="sans-serif" text-anchor="middle">${plate.weight}</text>
+            ` : ''}
+
+            ${showText ? `
+              <text x="${leftCx}" y="${centerY + 4}" fill="${textColor}" stroke="#0f172a" stroke-width="0.3" font-size="${fontSize}" font-weight="900" font-family="sans-serif" text-anchor="middle" transform="rotate(-90 ${leftCx} ${centerY})">${plate.weight}</text>
+            ` : ''}
+          </g>
         `;
-        const blob = new Blob([swCode], { type: 'text/javascript' });
-        navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+
+        // RIGHT SIDE
+        const rightCx = rightPlateX + pWidth / 2;
+        const rightCalloutY = pY - 10 - ((index % 2) * 12);
+
+        rightPlatesMarkup += `
+          <g class="cursor-pointer plate-hover" onclick="unloadPlateFromBar(${index})">
+            <title>Click to unload pair: ${plate.weight} ${plate.unit}</title>
+            <rect x="${rightPlateX + 1}" y="${pY}" width="${Math.max(1, pWidth - 1)}" height="${pHeight}" rx="3" fill="${plate.color}" stroke="#0f172a" stroke-width="1.5" />
+            <rect x="${rightPlateX + 3}" y="${pY + 3}" width="${Math.max(1, pWidth - 5)}" height="${pHeight - 6}" rx="2" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+            
+            ${isStackedClose ? `
+              <!-- Center dotted line down plate face -->
+              <line x1="${rightCx}" y1="${pY}" x2="${rightCx}" y2="${pY + pHeight}" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-dasharray="2 2" />
+              <!-- Extended dotted callout line to top badge -->
+              <line x1="${rightCx}" y1="${pY}" x2="${rightCx}" y2="${rightCalloutY}" stroke="${plate.color}" stroke-width="1.5" stroke-dasharray="2 2" />
+              <rect x="${rightCx - 10}" y="${rightCalloutY - 10}" width="20" height="10" rx="2" fill="#0f172a" stroke="${plate.color}" stroke-width="1" />
+              <text x="${rightCx}" y="${rightCalloutY - 2}" fill="#ffffff" font-size="8" font-weight="800" font-family="sans-serif" text-anchor="middle">${plate.weight}</text>
+            ` : ''}
+
+            ${showText ? `
+              <text x="${rightCx}" y="${centerY + 4}" fill="${textColor}" stroke="#0f172a" stroke-width="0.3" font-size="${fontSize}" font-weight="900" font-family="sans-serif" text-anchor="middle" transform="rotate(90 ${rightCx} ${centerY})">${plate.weight}</text>
+            ` : ''}
+          </g>
+        `;
+        rightPlateX += pWidth;
       });
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="w-full h-auto max-h-[220px] select-none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="metalBarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#cbd5e1" />
+              <stop offset="50%" stop-color="#64748b" />
+              <stop offset="100%" stop-color="#334155" />
+            </linearGradient>
+            <linearGradient id="sleeveGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#94a3b8" />
+              <stop offset="50%" stop-color="#475569" />
+              <stop offset="100%" stop-color="#1e293b" />
+            </linearGradient>
+          </defs>
+
+          <!-- Outer Sleeves -->
+          <rect x="${leftSleeveX}" y="${centerY - 10}" width="${sleeveWidth}" height="20" rx="2" fill="url(#sleeveGrad)" stroke="#334155" />
+          <rect x="${rightSleeveX}" y="${centerY - 10}" width="${sleeveWidth}" height="20" rx="2" fill="url(#sleeveGrad)" stroke="#334155" />
+
+          <!-- Bar Shaft -->
+          <rect x="${barShaftX}" y="${centerY - barHeight/2}" width="${barShaftWidth}" height="${barHeight}" rx="2" fill="url(#metalBarGrad)" />
+          
+          <!-- Center Knurling Marks -->
+          <rect x="${barShaftX + 110}" y="${centerY - barHeight/2}" width="140" height="${barHeight}" fill="rgba(0,0,0,0.15)" stroke="rgba(255,255,255,0.1)" stroke-dasharray="2 2" />
+
+          <!-- Inner Collars -->
+          <rect x="${barShaftX - collarWidth}" y="${centerY - collarHeight/2}" width="${collarWidth}" height="${collarHeight}" rx="3" fill="url(#sleeveGrad)" stroke="#0f172a" />
+          <rect x="${barShaftX + barShaftWidth}" y="${centerY - collarHeight/2}" width="${collarWidth}" height="${collarHeight}" rx="3" fill="url(#sleeveGrad)" stroke="#0f172a" />
+
+          <!-- Left and Right Plates -->
+          ${leftPlatesMarkup}
+          ${rightPlatesMarkup}
+
+          <!-- Barbell Weight Indicator -->
+          <text x="${svgWidth / 2}" y="${centerY + 45}" fill="#64748b" font-size="12" font-weight="600" text-anchor="middle">
+            Barbell Weight: ${selectedBarWeightKg} kg${loadedPlatesPerSide.length === 0 ? ' (Empty)' : ''}
+          </text>
+        </svg>
+      `;
     }
 
-    // PWA Install Prompt
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const btn = document.getElementById('installAppBtn');
-      if (btn) btn.style.display = 'inline-flex';
-    });
+    function updateUI(recalc = true) {
+      const totalKg = calculateTotalWeightKg();
+      const totalLb = totalKg * 2.20462;
+      
+      const roundedKg = Math.round(totalKg * 10) / 10;
+      const roundedLb = Math.round(totalLb * 10) / 10;
+      const combinedDisplayStr = `${roundedKg} kg / ${roundedLb} lb`;
 
-    document.getElementById('installAppBtn').addEventListener('click', () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => {
-          deferredPrompt = null;
-          document.getElementById('installAppBtn').style.display = 'none';
-        });
+      const totalBadge = document.getElementById('barbellTotalBadge');
+      if (totalBadge) {
+        totalBadge.textContent = `Total: ${combinedDisplayStr}`;
       }
-    });
 
-    // Init App
-    renderExercises();
-    calculate1RM();
-    updateTargetDisplay();
+      renderBarbellSVG();
+      renderInventoryGrid();
+    }
+
+    function renderInventoryGrid() {
+      const grid = document.getElementById('platesGrid');
+      if (!grid) return;
+      
+      grid.innerHTML = plateDefinitions.map(plate => {
+        const qty = availablePlates[plate.id] || 0;
+        const textColor = plate.textColor || '#ffffff';
+        const weightLabel = `${plate.weight} ${plate.unit.toUpperCase()}`;
+
+        return `
+          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex flex-col items-center justify-between text-center transition hover:border-slate-700">
+            <div class="text-xs font-extrabold text-white mb-1">
+              ${plate.weight} <span class="text-[10px] text-slate-400 font-medium">${plate.unit}</span>
+            </div>
+
+            <div onclick="addPlateGraphicClick('${plate.id}')" 
+                 class="my-1 cursor-pointer plate-hover flex items-center justify-center p-1.5 rounded-lg bg-slate-950/40 w-full"
+                 title="Click plate graphic to load 1 pair onto bar (Deducts 2 from stock)">
+              <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <path id="topArc_${plate.id}" d="M 13.5,30 A 16.5,16.5 0 0,1 46.5,30" fill="none" />
+                  <path id="bottomArc_${plate.id}" d="M 46.5,30 A 16.5,16.5 0 0,1 13.5,30" fill="none" />
+                </defs>
+
+                <circle cx="30" cy="30" r="26" fill="${plate.color}" stroke="#0f172a" stroke-width="2" />
+                <circle cx="30" cy="30" r="21" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
+                
+                <text fill="${textColor}" font-size="6.5" font-weight="800" font-family="sans-serif">
+                  <textPath href="#topArc_${plate.id}" startOffset="50%" text-anchor="middle">${weightLabel}</textPath>
+                </text>
+
+                <text fill="${textColor}" font-size="6.5" font-weight="800" font-family="sans-serif">
+                  <textPath href="#bottomArc_${plate.id}" startOffset="50%" text-anchor="middle">${weightLabel}</textPath>
+                </text>
+
+                <circle cx="30" cy="30" r="8.5" fill="#0f172a" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
+              </svg>
+            </div>
+            
+            <div class="w-full flex items-center justify-between bg-slate-950 rounded-lg p-1 border border-slate-800 mt-1">
+              <button onclick="decrementInventory(event, '${plate.id}')" 
+                      class="plate-btn-touch w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 font-bold rounded-md text-sm transition">
+                -
+              </button>
+              
+              <span class="text-xs font-bold ${qty < 2 ? 'text-amber-400' : 'text-emerald-400'}">
+                Qty: ${qty}
+              </span>
+
+              <button onclick="incrementInventory(event, '${plate.id}')" 
+                      class="plate-btn-touch w-7 h-7 flex items-center justify-center bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-md text-sm transition shadow-sm">
+                +
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
   </script>
 </body>
 </html>
