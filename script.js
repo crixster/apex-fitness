@@ -1,4 +1,4 @@
-    const plateDefinitions = [
+const plateDefinitions = [
       { id: 'red25kg', name: 'Olympic Red', weight: 25, unit: 'kg', color: '#ef4444', height: 110, width: 18 },
       { id: 'blue20kg', name: 'Olympic Blue', weight: 20, unit: 'kg', color: '#3b82f6', height: 105, width: 17 },
       { id: 'yellow15kg', name: 'Olympic Yellow', weight: 15, unit: 'kg', color: '#eab308', height: 95, width: 16 },
