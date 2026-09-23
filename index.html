@@ -167,7 +167,6 @@
           <div class="relative">
             <div class="flex items-center gap-3 mb-1">
               <label class="text-xs text-slate-400 font-medium block">Exercise Name</label>
-              <!-- Dedicated Body Weight Toggle Container to prevent input overlap -->
               <label class="inline-flex items-center gap-1.5 cursor-pointer select-none bg-slate-900/60 hover:bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-700/60 transition" title="Tick for body weight exercises (Push Ups, Dips, Pull Ups)">
                 <input type="checkbox" id="exerciseBW" onchange="onBWCheckboxChange('log')" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700 cursor-pointer">
                 <span class="text-[11px] text-indigo-300 font-bold whitespace-nowrap">Body Weight Exercise</span>
@@ -422,13 +421,22 @@
                 <i class="fa-solid fa-camera"></i>
                 <span>Scan Food or Label</span>
               </div>
-              <p class="text-xs text-slate-400">Upload or snap a photo of your meal or nutrition label to extract macros automatically.</p>
+              <p class="text-xs text-slate-400">Take a photo or upload an existing image from your gallery to analyze macros with Gemini AI.</p>
             </div>
-            <div>
-              <input type="file" id="image-input" accept="image/*" capture="environment" class="hidden" onchange="handleImageScan(event)" />
-              <button onclick="document.getElementById('image-input').click()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 font-bold text-white rounded-xl transition flex items-center justify-center space-x-2 text-xs shadow-md">
-                <i class="fa-solid fa-expand"></i>
-                <span>Scan Photo with Gemini AI</span>
+            <div class="grid grid-cols-2 gap-2">
+              <!-- Camera Input -->
+              <input type="file" id="image-input-camera" accept="image/*" capture="environment" class="hidden" onchange="handleImageScan(event)" />
+              <!-- Gallery Input -->
+              <input type="file" id="image-input-gallery" accept="image/*" class="hidden" onchange="handleImageScan(event)" />
+              
+              <button onclick="document.getElementById('image-input-camera').click()" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 font-bold text-white rounded-xl transition flex items-center justify-center space-x-1.5 text-xs shadow-md">
+                <i class="fa-solid fa-camera"></i>
+                <span>Camera</span>
+              </button>
+              
+              <button onclick="document.getElementById('image-input-gallery').click()" class="py-2.5 bg-slate-800 hover:bg-slate-700 font-bold text-slate-200 border border-slate-700 rounded-xl transition flex items-center justify-center space-x-1.5 text-xs shadow-md">
+                <i class="fa-solid fa-image"></i>
+                <span>Gallery</span>
               </button>
             </div>
           </div>
@@ -452,7 +460,7 @@
         <!-- Scan Status Loader -->
         <div id="scan-status" class="hidden glass-card border border-emerald-500/30 p-4 rounded-xl flex items-center space-x-3">
           <i class="fa-solid fa-circle-notch fa-spin text-emerald-400 text-xl"></i>
-          <span id="scan-status-text" class="text-xs text-slate-200">Analyzing image with Gemini AI...</span>
+          <span id="scan-status-text" class="text-xs text-slate-200">Searching for available Gemini AI models...</span>
         </div>
 
         <!-- Food Log for Selected Day -->
@@ -487,7 +495,6 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="text-xs text-slate-400 font-medium">Weight</label>
-            <!-- Body Weight Checkbox in Edit Modal -->
             <label class="inline-flex items-center gap-1 cursor-pointer select-none" title="Body weight exercise">
               <input type="checkbox" id="editBW" onchange="onBWCheckboxChange('edit')" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700 cursor-pointer">
               <span class="text-[11px] text-indigo-300 font-bold whitespace-nowrap">Body Weight</span>
@@ -707,7 +714,6 @@
     let goals = { cal: 2000, p: 150, c: 200, f: 65 };
     let foodLogs = {}; // Format: 'YYYY-MM-DD': [{ id, name, cal, p, c, f }]
     let geminiApiKey = '';
-    let cachedGeminiModel = null;
 
     window.onload = function() {
       renderExercises();
@@ -779,7 +785,7 @@
       if (toast) {
         toast.textContent = msg;
         toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.add('hidden'), 2500);
+        setTimeout(() => toast.classList.add('hidden'), 3000);
       }
     }
 
@@ -1904,6 +1910,7 @@
 
     function closeFormModal() {
       document.getElementById('entry-modal').classList.add('hidden');
+      editingMacroId = null;
     }
 
     function saveFoodEntry() {
@@ -1922,14 +1929,14 @@
       if (!foodLogs[currStr]) foodLogs[currStr] = [];
 
       if (editingMacroId) {
-        foodLogs[currStr] = foodLogs[currStr].map(item => item.id === editingMacroId ? { ...item, name, cal, p, c, f } : item);
+        foodLogs[currStr] = foodLogs[currStr].map(item => item.id === editingMacroId ? { id: item.id, name, cal, p, c, f } : item);
       } else {
         foodLogs[currStr].push({ id: Date.now(), name, cal, p, c, f });
       }
 
       closeFormModal();
       renderDay();
-      showToast('Saved food entry');
+      showToast('Food entry saved');
     }
 
     function editFoodEntry(id) {
@@ -1944,7 +1951,7 @@
       if (foodLogs[currStr]) {
         foodLogs[currStr] = foodLogs[currStr].filter(i => i.id !== id);
         renderDay();
-        showToast('Deleted food entry');
+        showToast('Food entry deleted');
       }
     }
 
@@ -1967,7 +1974,7 @@
       goals.p = parseInt(document.getElementById('goal-p-input').value) || 150;
       goals.c = parseInt(document.getElementById('goal-c-input').value) || 200;
       goals.f = parseInt(document.getElementById('goal-f-input').value) || 65;
-
+      
       localStorage.setItem('apex_gemini_key', geminiApiKey);
       localStorage.setItem('apex_macro_goals', JSON.stringify(goals));
 
@@ -1984,109 +1991,177 @@
       if (savedGoals) {
         try {
           goals = JSON.parse(savedGoals);
-        } catch(e) {}
+        } catch (e) {}
       }
     }
 
-    async function resolveGeminiModel(apiKey) {
-      if (cachedGeminiModel) return cachedGeminiModel;
+    // Convert file object to Base64 string
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Dynamic Gemini Model Discovery
+    async function getLatestGeminiModel(apiKey) {
+      const fallbacks = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-flash'
+      ];
+
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        if (!res.ok) throw new Error('Model discovery failed');
-        const data = await res.json();
-        if (data && data.models) {
-          const validModels = data.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'));
-          const flashModel = validModels.find(m => m.name.includes('flash'));
-          if (flashModel) {
-            cachedGeminiModel = flashModel.name.replace('models/', '');
-            return cachedGeminiModel;
-          } else if (validModels.length > 0) {
-            cachedGeminiModel = validModels[0].name.replace('models/', '');
-            return cachedGeminiModel;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.models && Array.isArray(data.models)) {
+            // Filter models supporting generateContent and containing 'gemini'
+            const validModels = data.models
+              .filter(m => !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent'))
+              .map(m => m.name.replace(/^models\//, ''))
+              .filter(name => name.toLowerCase().includes('gemini'));
+            
+            // Prefer flash vision models
+            const flashModels = validModels.filter(name => name.toLowerCase().includes('flash'));
+            const candidatePool = flashModels.length > 0 ? flashModels : validModels;
+
+            // Sort models to pick the newest version available
+            candidatePool.sort((a, b) => {
+              const matchA = a.match(/(\d+\.\d+|\d+)/);
+              const matchB = b.match(/(\d+\.\d+|\d+)/);
+              const verA = matchA ? parseFloat(matchA[0]) : 0;
+              const verB = matchB ? parseFloat(matchB[0]) : 0;
+              return verB - verA;
+            });
+
+            if (candidatePool.length > 0) {
+              return candidatePool[0];
+            }
           }
         }
       } catch (err) {
-        console.warn('Discovery fallback activated:', err);
+        console.warn("Could not retrieve model list from API, falling back to dynamic default list:", err);
       }
-      cachedGeminiModel = 'gemini-3.8-flash';
-      return cachedGeminiModel;
+
+      return fallbacks[0];
     }
 
+    // Scan Food / Nutrition Label using Gemini AI
     async function handleImageScan(event) {
-      const file = event.target.files[0];
+      const file = event.target.files && event.target.files[0];
       if (!file) return;
 
       if (!geminiApiKey) {
-        showToast('Please configure your Gemini API Key in Settings first.');
+        showToast('Please set your Gemini API Key in Settings first.');
         openSettings();
+        event.target.value = '';
         return;
       }
 
-      const statusDiv = document.getElementById('scan-status');
-      const statusText = document.getElementById('scan-status-text');
-      statusDiv.classList.remove('hidden');
-      statusText.textContent = 'Discovering optimal Gemini model...';
+      const scanStatus = document.getElementById('scan-status');
+      const scanStatusText = document.getElementById('scan-status-text');
+      
+      if (scanStatus) scanStatus.classList.remove('hidden');
+      if (scanStatusText) scanStatusText.textContent = 'Searching for latest Gemini model...';
 
       try {
-        const modelName = await resolveGeminiModel(geminiApiKey);
-        statusText.textContent = `Analyzing image with Gemini model (${modelName})...`;
+        const base64Data = await fileToBase64(file);
+        const mimeType = file.type || 'image/jpeg';
 
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-          const base64Data = e.target.result.split(',')[1];
-          const mimeType = file.type || 'image/jpeg';
+        let modelToUse = await getLatestGeminiModel(geminiApiKey);
+        
+        if (scanStatusText) {
+          scanStatusText.textContent = `Analyzing image with Gemini model: ${modelToUse}...`;
+        }
 
-          const payload = {
-            contents: [
-              {
-                parts: [
-                  { text: "Analyze this food or nutrition label image and extract the food name, total calories (kcal), protein (g), carbohydrates (g), and fat (g). Return ONLY valid JSON format like: {\"name\": \"Food Name\", \"cal\": 350, \"p\": 25, \"c\": 40, \"f\": 10}." },
-                  {
-                    inlineData: {
-                      mimeType: mimeType,
-                      data: base64Data
-                    }
-                  }
-                ]
-              }
+        const promptText = `Analyze this food or nutrition label image. Extract the food name, total calories (kcal), protein (g), carbs (g), and fat (g). Return ONLY a raw JSON object with keys: "name" (string), "cal" (number), "p" (number), "c" (number), "f" (number). Do not wrap in markdown quotes, preambles, or backticks.`;
+
+        const requestBody = {
+          contents: [{
+            parts: [
+              { text: promptText },
+              { inlineData: { mimeType: mimeType, data: base64Data } }
             ]
-          };
+          }]
+        };
 
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`, {
+        let responseData = null;
+        let actualModelUsed = modelToUse;
+
+        const executeCall = async (modelName) => {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
+          const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(requestBody)
           });
-
-          if (!response.ok) throw new Error('API request failed');
-
-          const result = await response.json();
-          const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!candidateText) throw new Error('Invalid response structure');
-
-          const cleanJsonStr = candidateText.replace(/```json/g, '').replace(/```/g, '').trim();
-          const parsedData = JSON.parse(cleanJsonStr);
-
-          const currStr = getDateString(currentDate);
-          if (!foodLogs[currStr]) foodLogs[currStr] = [];
-          foodLogs[currStr].push({
-            id: Date.now(),
-            name: parsedData.name || 'Scanned Food',
-            cal: parsedData.cal || 0,
-            p: parsedData.p || 0,
-            c: parsedData.c || 0,
-            f: parsedData.f || 0
-          });
-
-          renderDay();
-          showToast(`Successfully added ${parsedData.name || 'Scanned Food'} via ${modelName}!`);
+          if (!res.ok) {
+            const errorDetail = await res.json().catch(() => ({}));
+            throw new Error(errorDetail.error?.message || `HTTP ${res.status}`);
+          }
+          return await res.json();
         };
-        reader.readAsDataURL(file);
-      } catch (err) {
-        console.error(err);
-        showToast('Failed to scan image. Please check API key or image quality.');
+
+        try {
+          responseData = await executeCall(modelToUse);
+        } catch (primaryErr) {
+          console.warn(`Primary model ${modelToUse} failed, attempting fallbacks...`, primaryErr);
+          const fallbacks = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash'].filter(m => m !== modelToUse);
+          
+          let success = false;
+          for (const fbModel of fallbacks) {
+            try {
+              if (scanStatusText) scanStatusText.textContent = `Fallback attempt using model: ${fbModel}...`;
+              responseData = await executeCall(fbModel);
+              actualModelUsed = fbModel;
+              success = true;
+              break;
+            } catch (fbErr) {
+              console.warn(`Fallback ${fbModel} failed:`, fbErr);
+            }
+          }
+          if (!success) throw primaryErr;
+        }
+
+        const candidate = responseData?.candidates?.[0];
+        const textOutput = candidate?.content?.parts?.[0]?.text;
+
+        if (!textOutput) {
+          throw new Error('No output content returned from Gemini model');
+        }
+
+        const cleanJsonText = textOutput.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsedData = JSON.parse(cleanJsonText);
+
+        const currStr = getDateString(currentDate);
+        if (!foodLogs[currStr]) foodLogs[currStr] = [];
+
+        const newEntry = {
+          id: Date.now(),
+          name: parsedData.name || 'Scanned Food Item',
+          cal: parseFloat(parsedData.cal) || 0,
+          p: parseFloat(parsedData.p) || 0,
+          c: parseFloat(parsedData.c) || 0,
+          f: parseFloat(parsedData.f) || 0
+        };
+
+        foodLogs[currStr].push(newEntry);
+        renderDay();
+        showToast(`Added "${newEntry.name}" via model: ${actualModelUsed}`);
+
+      } catch (error) {
+        console.error('Gemini Vision Scan Error:', error);
+        showToast(`Scan failed: ${error.message || 'Unknown error'}`);
       } finally {
-        statusDiv.classList.add('hidden');
+        if (scanStatus) scanStatus.classList.add('hidden');
         event.target.value = '';
       }
     }
