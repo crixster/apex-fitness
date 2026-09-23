@@ -1,0 +1,34 @@
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+
+    .plate-hover {
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    .plate-hover:hover {
+      transform: translateY(-2px) scale(1.04);
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+    }
+
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .plate-btn-touch {
+      touch-action: manipulation;
+    }
+
+    /* Custom scrollbar for dropdown suggestions */
+    .suggestions-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .suggestions-list::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
