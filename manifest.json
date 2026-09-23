@@ -1,0 +1,15 @@
+{
+  "name": "Apex Fitness Tracker",
+  "short_name": "ApexFitness",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/svgs/solid/dumbbell.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
