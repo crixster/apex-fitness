@@ -1,13 +1,18 @@
 {
+  "id": "/index.html",
   "name": "Apex Fitness Tracker",
   "short_name": "Apex Fitness",
   "description": "Smart barbell loading calculator, workout log & macro tracker",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "lifestyle"],
   "icons": [
     {
       "src": "icons/icon-192.png",

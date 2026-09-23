@@ -8,12 +8,17 @@
   <!-- PWA: installable on Android (manifest) and iOS (apple-* tags) -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
+  <meta name="application-name" content="Apex Fitness">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Apex Fitness">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <!-- iOS ignores manifest icons entirely, so the apple-touch-icon file below
+       (a real, opaque, non-transparent 180x180 PNG placed next to index.html)
+       is what actually shows on the iPhone/iPad home screen. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="icons/icon-512.png" sizes="512x512" type="image/png">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -27,6 +32,16 @@
         💪 Apex Fitness Tracker
       </h1>
       <p class="text-xs sm:text-sm text-slate-400 mt-1">Smart barbell loading calculator, workout log & macro tracker</p>
+
+      <!-- Install App Banner (Android/Chrome shows a real install button; iOS shows Add-to-Home-Screen instructions, since Safari has no install prompt API) -->
+      <div id="pwaInstallContainer" class="hidden mt-3 flex flex-col items-center gap-2">
+        <button id="pwaInstallBtn" onclick="triggerPwaInstall()" class="hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md transition items-center gap-2">
+          <i class="fa-solid fa-arrow-down-to-line"></i> Install App
+        </button>
+        <p id="pwaIosHint" class="hidden text-[11px] text-slate-400 bg-slate-800/70 border border-slate-700 rounded-lg px-3 py-2">
+          On iPhone/iPad: tap <i class="fa-solid fa-arrow-up-from-bracket text-emerald-400"></i> <strong>Share</strong>, then <strong>"Add to Home Screen"</strong>.
+        </p>
+      </div>
     </header>
 
     <!-- Navigation Tabs -->
@@ -593,6 +608,11 @@
         <div>
           <label class="text-slate-400 block mb-1 font-medium">Portion / Serving Multiplier</label>
           <input type="number" id="food-portion-input" value="1" step="0.1" min="0.1" oninput="onPortionInputChange()" placeholder="1.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500" />
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1 font-medium">Date & Time Logged</label>
+          <input type="datetime-local" id="food-datetime-input" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500" />
+          <p class="text-[10px] text-slate-500 mt-1">Defaults to right now — change this to log a meal you already ate earlier.</p>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>

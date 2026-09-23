@@ -54,9 +54,12 @@
       calculateFromTarget();
       loadSettings();
       renderDay();
+      initPwaInstallUI();
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js').catch((err) => {
+          console.warn('Service worker registration failed (app will still work, just without install/offline support):', err);
+        });
       }
 
       document.addEventListener('click', function(e) {
@@ -67,6 +70,66 @@
         }
       });
     };
+
+    // --- PWA Install Support ---------------------------------------------
+    // Android/Chrome fires 'beforeinstallprompt' when the manifest + service
+    // worker pass its installability checks; we capture that event so we can
+    // trigger the native install dialog from our own "Install App" button
+    // instead of relying purely on the browser's automatic mini-infobar.
+    // iOS Safari has no such API at all, so instead we detect iOS and show
+    // manual "Add to Home Screen" instructions.
+    let deferredInstallPrompt = null;
+
+    function isRunningStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    function initPwaInstallUI() {
+      const container = document.getElementById('pwaInstallContainer');
+      const btn = document.getElementById('pwaInstallBtn');
+      const iosHint = document.getElementById('pwaIosHint');
+      if (!container) return;
+
+      // Already installed / already running as an installed app: nothing to show.
+      if (isRunningStandalone()) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        container.classList.remove('hidden');
+        if (btn) btn.classList.remove('hidden');
+        if (iosHint) iosHint.classList.add('hidden');
+      });
+
+      window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        container.classList.add('hidden');
+        showToast('Apex Fitness installed!');
+      });
+
+      const ua = window.navigator.userAgent || '';
+      const isIOS = /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
+      if (isIOS) {
+        container.classList.remove('hidden');
+        if (btn) btn.classList.add('hidden');
+        if (iosHint) iosHint.classList.remove('hidden');
+      }
+    }
+
+    async function triggerPwaInstall() {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      try {
+        await deferredInstallPrompt.userChoice;
+      } finally {
+        deferredInstallPrompt = null;
+        document.getElementById('pwaInstallBtn')?.classList.add('hidden');
+        document.getElementById('pwaInstallContainer')?.classList.add('hidden');
+      }
+    }
 
     function formatTempo(input) {
       if (!input || typeof input !== 'string') return '2-0-1-0';
@@ -1248,6 +1311,31 @@
       return `${hours}:${minutes} ${ampm}`;
     }
 
+    // Converts a Date into the 'YYYY-MM-DDTHH:mm' string that <input
+    // type="datetime-local"> expects, using LOCAL time components (never
+    // toISOString(), which would shift the value to UTC).
+    function toDatetimeLocalValue(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    // Parses a 'YYYY-MM-DDTHH:mm' datetime-local value back into a local
+    // Date. Returns null if the value is missing/malformed so callers can
+    // fall back to "now".
+    function fromDatetimeLocalValue(value) {
+      if (!value || typeof value !== 'string') return null;
+      const [datePart, timePart] = value.split('T');
+      if (!datePart || !timePart) return null;
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hours, minutes] = timePart.split(':').map(Number);
+      if ([year, month, day, hours, minutes].some(n => Number.isNaN(n))) return null;
+      return new Date(year, month - 1, day, hours, minutes, 0, 0);
+    }
+
     function changeDate(delta) {
       currentDate.setDate(currentDate.getDate() + delta);
       renderDay();
@@ -1319,14 +1407,17 @@
       dateKeys.sort((a, b) => b.localeCompare(a));
 
       listContainer.innerHTML = dateKeys.map(dateKey => {
-        // Newest logged item first within the day (id = Date.now() at log time).
-        const items = [...foodLogs[dateKey]].sort((a, b) => (b.id || 0) - (a.id || 0));
+        // Newest logged time first within the day. Uses the user-editable
+        // `loggedAt` timestamp when present; older entries saved before
+        // date/time editing existed fall back to `id` (which was Date.now()
+        // at creation time, i.e. their original implicit log time).
+        const items = [...foodLogs[dateKey]].sort((a, b) => (b.loggedAt || b.id || 0) - (a.loggedAt || a.id || 0));
         const dayLabel = formatDisplayDate(parseDateKey(dateKey));
 
         const itemsHtml = items.map(item => {
           const portionLabel = item.portion && item.portion !== 1 ? ` (${item.portion}x portion)` : '';
           const isFav = favourites.some(f => f.name.toLowerCase() === item.name.toLowerCase());
-          const timeLabel = formatDisplayTime(item.id);
+          const timeLabel = formatDisplayTime(item.loggedAt || item.id);
 
           return `
             <div class="glass-card p-3 rounded-xl border border-slate-800 flex items-center justify-between hover:border-slate-700 transition">
@@ -1432,9 +1523,12 @@
       if (!fav) return;
 
       editingMacroId = null;
+      editingMacroDateKey = null;
       document.getElementById('modal-title').textContent = `Add Favourite: ${fav.name}`;
       document.getElementById('food-name-input').value = fav.name;
       document.getElementById('food-portion-input').value = fav.portion || 1;
+      const favDatetimeInput = document.getElementById('food-datetime-input');
+      if (favDatetimeInput) favDatetimeInput.value = toDatetimeLocalValue(new Date());
       
       const modal = document.getElementById('entry-modal');
       modal.dataset.baseCal = fav.cal;
@@ -1579,6 +1673,8 @@
           if (titleEl) titleEl.textContent = 'Edit Food Entry';
           document.getElementById('food-name-input').value = item.name;
           document.getElementById('food-portion-input').value = item.portion || 1;
+          const editDatetimeInput = document.getElementById('food-datetime-input');
+          if (editDatetimeInput) editDatetimeInput.value = toDatetimeLocalValue(new Date(item.loggedAt || item.id));
           document.getElementById('food-cal-input').value = item.cal;
           document.getElementById('food-p-input').value = item.p;
           document.getElementById('food-c-input').value = item.c;
@@ -1598,6 +1694,8 @@
         if (titleEl) titleEl.textContent = 'Add Food Entry';
         document.getElementById('food-name-input').value = '';
         document.getElementById('food-portion-input').value = 1;
+        const newDatetimeInput = document.getElementById('food-datetime-input');
+        if (newDatetimeInput) newDatetimeInput.value = toDatetimeLocalValue(new Date());
         document.getElementById('food-cal-input').value = '';
         document.getElementById('food-p-input').value = '';
         document.getElementById('food-c-input').value = '';
@@ -1628,10 +1726,15 @@
         return;
       }
 
-      // Editing an existing entry writes back to the day it was originally
-      // logged under; adding a new entry always logs to the selected day.
-      const key = editingMacroId ? (editingMacroDateKey || formatDateKey(currentDate)) : formatDateKey(currentDate);
-      if (!foodLogs[key]) foodLogs[key] = [];
+      // The Date & Time field is user-editable (defaults to "now") so foods
+      // can be logged retroactively for earlier in the day, or an earlier
+      // day entirely. That chosen date is what decides which day-bucket in
+      // foodLogs{} the entry lives under — it overrides the Date Navigator's
+      // currently-selected day, both for new entries and edits.
+      const datetimeInputVal = document.getElementById('food-datetime-input')?.value;
+      const loggedAtDate = fromDatetimeLocalValue(datetimeInputVal) || new Date();
+      const loggedAt = loggedAtDate.getTime();
+      const newKey = formatDateKey(loggedAtDate);
 
       const modal = document.getElementById('entry-modal');
       const baseCal = modal.dataset.baseCal ? parseFloat(modal.dataset.baseCal) : Math.round(cal / portion);
@@ -1639,15 +1742,25 @@
       const baseC = modal.dataset.baseC ? parseFloat(modal.dataset.baseC) : Math.round((c / portion) * 10) / 10;
       const baseF = modal.dataset.baseF ? parseFloat(modal.dataset.baseF) : Math.round((f / portion) * 10) / 10;
 
+      if (!foodLogs[newKey]) foodLogs[newKey] = [];
+
       if (editingMacroId) {
-        foodLogs[key] = foodLogs[key].map(item => {
-          if (item.id === editingMacroId) {
-            return { id: item.id, name, cal, p, c, f, portion, baseCal, baseP, baseC, baseF };
+        // Editing an existing entry: if the date was changed to a different
+        // day, move the item out of its old day-bucket and into the new one
+        // (keeping the same id so favourites/edit/delete references still work).
+        const oldKey = editingMacroDateKey || newKey;
+        const updatedItem = { id: editingMacroId, name, cal, p, c, f, portion, baseCal, baseP, baseC, baseF, loggedAt };
+
+        if (oldKey !== newKey) {
+          if (foodLogs[oldKey]) {
+            foodLogs[oldKey] = foodLogs[oldKey].filter(item => item.id !== editingMacroId);
           }
-          return item;
-        });
+          foodLogs[newKey].push(updatedItem);
+        } else {
+          foodLogs[newKey] = foodLogs[newKey].map(item => item.id === editingMacroId ? updatedItem : item);
+        }
       } else {
-        foodLogs[key].push({
+        foodLogs[newKey].push({
           id: Date.now(),
           name,
           cal,
@@ -1658,7 +1771,8 @@
           baseCal,
           baseP,
           baseC,
-          baseF
+          baseF,
+          loggedAt
         });
       }
 
@@ -1684,7 +1798,16 @@
       localStorage.setItem('apex_food_logs', JSON.stringify(foodLogs));
       closeFormModal();
       renderDay();
-      showToast(editingMacroId ? 'Updated food entry' : 'Added food entry');
+
+      // If the entry was logged to a different day than the one currently
+      // shown in the Date Navigator, say so — otherwise the Daily Summary
+      // cards (which only total the navigator's selected day) won't visibly
+      // change even though the entry saved successfully.
+      const loggedToDifferentDay = newKey !== formatDateKey(currentDate);
+      const actionLabel = editingMacroId ? 'Updated' : 'Added';
+      showToast(loggedToDifferentDay
+        ? `${actionLabel} food entry for ${formatDisplayDate(loggedAtDate)}`
+        : `${actionLabel} food entry`);
     }
 
     function deleteFoodEntry(id, dateKey) {
