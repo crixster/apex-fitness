@@ -1826,7 +1826,7 @@ const plateDefinitions = [
     // the best available alternative, so the app keeps working without
     // needing a manual code update.
     const GEMINI_PREFERRED_MODEL = 'gemini-3.8-flash';
-    const GEMINI_FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-1.5-flash'];
+    const GEMINI_FALLBACK_MODELS = ['gemini-3.7-flash', 'gemini-3.5-flash-lite'];
     let cachedWorkingGeminiModel = null;
 
     // Asks the Gemini API which models are actually available to this key
